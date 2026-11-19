@@ -58,18 +58,57 @@
   .panel button.ghost{background:#fff;color:#111}
   .close{float:right}
   @media (max-height:700px){.snapshot{height:210px}}
+
+  /* Start screen */
+  .start-screen{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:24px;background:linear-gradient(135deg,#111 0%,#242424 62%,#3b321c 100%);color:#fff;text-align:center}
+  .start-card{width:100%;max-width:360px;padding:28px 20px;border:2px solid var(--yellow);border-radius:18px;background:rgba(0,0,0,.88);box-shadow:0 18px 50px rgba(0,0,0,.4)}
+  .start-kicker{margin-bottom:14px;color:var(--yellow2);font-size:12px;font-weight:900;letter-spacing:2px}
+  .start-card h1{margin-bottom:12px;font-size:clamp(24px,7vw,32px);letter-spacing:1px}
+  .start-card p{font-size:14px;line-height:1.5}
+  .start-options{display:grid;gap:10px;margin-top:20px}
+  .start-options button{width:100%;padding:15px 12px;border:2px solid var(--yellow2);border-radius:12px;background:var(--yellow2);color:#111;font-size:18px;font-weight:900;letter-spacing:1px;cursor:pointer}
+  .start-options button.secondary{background:transparent;color:var(--yellow2)}
+  .start-options button:active{transform:scale(.98)}
+  .start-card .start-note{margin-top:14px;color:#bbb;font-size:12px}
+  .start-card .start-status{margin-top:10px;color:#f8d777;font-size:13px;font-weight:700}
+  .start-status:empty{display:none}
+  #startScreen[hidden],#fullscreenNotice[hidden],#fullscreenReenter[hidden]{display:none!important}
+  /* Fullscreen only affects the original game shell */
+  .phone:fullscreen{width:100%;max-width:520px;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;margin:0 auto;border-radius:0;box-shadow:none;overflow-x:hidden;overflow-y:auto}
+  .phone:fullscreen::backdrop{background:#111}
+  .phone:fullscreen .snapshot,.phone:fullscreen .actions{flex-shrink:0}
+  /* Optional fullscreen retry: never blocks the game */
+  .fullscreen-notice{position:absolute;left:12px;right:12px;bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:9;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
+  .fullscreen-notice p{align-self:stretch;padding:9px 12px;border-radius:8px;background:rgba(17,17,17,.94);color:#fff;font-size:12px;line-height:1.4;text-align:center}
+  .fullscreen-notice button{pointer-events:auto;padding:10px 12px;border:2px solid var(--ink);border-radius:10px;background:var(--yellow2);color:var(--ink);font-size:12px;font-weight:900;cursor:pointer}
+  .fullscreen-notice button:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
 <div class="phone">
+  <!-- Start screen: displayed before playing -->
+  <div id="startScreen" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+    <div class="start-card">
+      <p class="start-kicker">BẢN DỰNG TẠM</p>
+      <h1 id="startTitle">[BACKROOMS]</h1>
+      <p>Chọn cách vào trò chơi.</p>
+      <div class="start-options">
+        <button id="btnStartGame" type="button">START GAME</button>
+        <button id="btnLoadGame" class="secondary" type="button">LOAD GAME</button>
+      </div>
+      <p class="start-note">START GAME tạo ván mới và ghi đè bản lưu hiện tại.</p>
+      <p id="startStatus" class="start-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
   <!-- Khung trên: GAMETITLE + Nút Hamburger -->
-  <header>
+  <header inert>
     <div class="title">[BACKROOMS]</div>
     <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
   </header>
 
   <!-- Khung snapshot: Overlay NVC + Enemy -->
-  <section class="snapshot" aria-label="Khung snapshot">
+  <section class="snapshot" aria-label="Khung snapshot" inert>
     <div class="roomtag" id="roomTag">LEVEL 0 — PHÒNG 1</div>
     <div class="sanity" id="statTag">HP 100 · SANITY 100</div>
 
@@ -107,7 +146,7 @@
   </section>
 
   <!-- GAME MASTER / Kể chuyện -->
-  <section class="gm">
+  <section class="gm" inert>
     <div class="gm-head">GAME MASTER / KỂ CHUYỆN<small>Người kể chuyện sẽ cập nhật ở đây sau mỗi hành động.</small></div>
     <div class="story" id="story">
       <p class="sys">Bạn mở mắt trên tấm thảm ẩm, dưới tiếng đèn huỳnh quang rè rè không dứt.</p>
@@ -117,14 +156,20 @@
   </section>
 
   <!-- Khung Hành Động -->
-  <nav class="actions" aria-label="Khung Hành Động">
+  <nav class="actions" aria-label="Khung Hành Động" inert>
     <button id="btnAction">ACTION</button>
     <button id="btnMove">MOVE</button>
     <button id="btnFind">FIND</button>
   </nav>
 
+  <!-- Non-blocking fullscreen status and manual re-entry -->
+  <div id="fullscreenNotice" class="fullscreen-notice" hidden>
+    <p id="fullscreenHint" role="status" aria-live="polite"></p>
+    <button id="fullscreenReenter" type="button" hidden>VÀO LẠI TOÀN MÀN HÌNH</button>
+  </div>
+
   <!-- Menu Hamburger -->
-  <div class="menu" id="menu">
+  <div class="menu" id="menu" inert>
     <div class="panel">
       <button class="ghost close" id="closeMenu" style="width:auto;padding:8px 12px;margin:0">Đóng ✕</button>
       <h2>BACKROOMS</h2>
@@ -205,6 +250,220 @@
   menu.addEventListener('click',e=>{if(e.target===menu)menu.classList.remove('open')});
   document.getElementById('restart').onclick=()=>{reset();menu.classList.remove('open')};
   reset();
+
+  // Start screen, fullscreen and minimal local save (demo format v1).
+  const phoneEl = document.querySelector('.phone');
+  const startScreenEl = document.getElementById('startScreen');
+  const startStatusEl = document.getElementById('startStatus');
+  const fullscreenNoticeEl = document.getElementById('fullscreenNotice');
+  const fullscreenHintEl = document.getElementById('fullscreenHint');
+  const fullscreenReenterEl = document.getElementById('fullscreenReenter');
+  const gameParts = document.querySelectorAll('.phone > header, .phone > .snapshot, .phone > .gm, .phone > .actions, .phone > #menu');
+  const SAVE_KEY = 'backrooms-demo-save-v1';
+  const SAVE_VERSION = 1;
+  let gameStarted = false;
+  let noticeTimer = null;
+  let saveWarningShown = false;
+
+  function fullscreenSupported(){
+    return typeof phoneEl.requestFullscreen === 'function' && document.fullscreenEnabled !== false;
+  }
+
+  function requestPhoneFullscreen(){
+    if(!fullscreenSupported()) return {supported:false, promise:null};
+    try {
+      // Invoke synchronously while the button's user gesture is active.
+      return {supported:true, promise:Promise.resolve(phoneEl.requestFullscreen())};
+    } catch(error) {
+      return {supported:true, promise:Promise.reject(error)};
+    }
+  }
+
+  function hideFullscreenNotice(){
+    if(noticeTimer !== null){clearTimeout(noticeTimer);noticeTimer = null;}
+    fullscreenNoticeEl.hidden = true;
+  }
+
+  function showFullscreenNotice(message, allowRetry){
+    if(noticeTimer !== null){clearTimeout(noticeTimer);noticeTimer = null;}
+    fullscreenHintEl.textContent = message;
+    fullscreenReenterEl.hidden = !allowRetry;
+    fullscreenNoticeEl.hidden = false;
+    if(!allowRetry){
+      noticeTimer = setTimeout(()=>{fullscreenNoticeEl.hidden = true;noticeTimer = null;}, 5000);
+    }
+  }
+
+  function handleFullscreenResult(request){
+    if(!request.supported){
+      showFullscreenNotice('Trình duyệt không hỗ trợ toàn màn hình. Game vẫn chơi bình thường.', false);
+      return;
+    }
+    request.promise.then(()=>{
+      if(gameStarted && document.fullscreenElement !== phoneEl){
+        showFullscreenNotice('Không thể duy trì toàn màn hình. Game vẫn tiếp tục.', fullscreenSupported());
+      }
+    }).catch(error=>{
+      console.warn('Fullscreen bị từ chối:', error);
+      if(gameStarted){
+        showFullscreenNotice('Không thể bật toàn màn hình. Game vẫn tiếp tục.', fullscreenSupported());
+      }
+    });
+  }
+
+  document.addEventListener('fullscreenchange', ()=>{
+    if(!gameStarted) return;
+    if(document.fullscreenElement === phoneEl){
+      hideFullscreenNotice();
+    } else {
+      showFullscreenNotice('Đã thoát toàn màn hình. Game vẫn tiếp tục.', fullscreenSupported());
+    }
+  });
+
+  // Parse saved story as inert HTML and only rebuild the existing p/b markup.
+  function sanitizeStoryMarkup(html){
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+    const safe = document.createElement('div');
+    function appendInline(source, target){
+      for(const node of source.childNodes){
+        if(node.nodeType === 3){
+          target.appendChild(document.createTextNode(node.textContent));
+        } else if(node.nodeType === 1){
+          if(node.tagName === 'B' || node.tagName === 'STRONG'){
+            const bold = document.createElement('b');
+            appendInline(node, bold);
+            target.appendChild(bold);
+          } else {
+            appendInline(node, target);
+          }
+        }
+      }
+    }
+    for(const node of parsed.body.childNodes){
+      if(node.nodeType !== 1 || node.tagName !== 'P') continue;
+      const paragraph = document.createElement('p');
+      if(node.classList.contains('sys')) paragraph.className = 'sys';
+      else if(node.classList.contains('loot')) paragraph.className = 'loot';
+      appendInline(node, paragraph);
+      safe.appendChild(paragraph);
+    }
+    return safe.innerHTML;
+  }
+
+  function validSavedState(value){
+    return value && typeof value === 'object' && !Array.isArray(value) &&
+      Number.isInteger(value.hp) && value.hp >= 0 && value.hp <= 100 &&
+      Number.isInteger(value.sanity) && value.sanity >= 0 && value.sanity <= 100 &&
+      Number.isSafeInteger(value.room) && value.room >= 1 &&
+      Number.isInteger(value.enemyHp) &&
+      Number.isInteger(value.enemyMax) && value.enemyMax > 0 &&
+      typeof value.enemyAlive === 'boolean' &&
+      Array.isArray(value.bag) &&
+      value.bag.every(item=>typeof item === 'string' && loot.includes(item));
+  }
+
+  function readSavedGame(){
+    let raw;
+    try {
+      raw = localStorage.getItem(SAVE_KEY);
+    } catch(error) {
+      console.warn('Không đọc được localStorage:', error);
+      return {ok:false, message:'Trình duyệt không cho phép đọc bản lưu.'};
+    }
+    if(raw === null) return {ok:false, message:'Chưa có bản lưu. Hãy chọn START GAME.'};
+    try {
+      const saved = JSON.parse(raw);
+      if(!saved || saved.version !== SAVE_VERSION ||
+         !validSavedState(saved.state) || typeof saved.story !== 'string'){
+        return {ok:false, message:'Bản lưu không hợp lệ. Hãy chọn START GAME.'};
+      }
+      return {
+        ok:true,
+        state:{
+          hp:saved.state.hp, sanity:saved.state.sanity,
+          room:saved.state.room, enemyHp:saved.state.enemyHp,
+          enemyMax:saved.state.enemyMax, enemyAlive:saved.state.enemyAlive,
+          bag:saved.state.bag.slice()
+        },
+        storyHtml:sanitizeStoryMarkup(saved.story)
+      };
+    } catch(error) {
+      console.warn('Bản lưu lỗi:', error);
+      return {ok:false, message:'Không thể đọc bản lưu này. Hãy chọn START GAME.'};
+    }
+  }
+
+  function saveGame(){
+    if(!gameStarted) return;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        version:SAVE_VERSION,
+        state:S,
+        story:story.innerHTML
+      }));
+      saveWarningShown = false;
+    } catch(error) {
+      console.warn('Không thể lưu trò chơi:', error);
+      if(!saveWarningShown){
+        saveWarningShown = true;
+        showFullscreenNotice('Không thể lưu tiến trình trong trình duyệt này.', false);
+      }
+    }
+  }
+
+  function enterGame(){
+    gameStarted = true;
+    startScreenEl.hidden = true;
+    gameParts.forEach(part=>{part.inert = false;});
+  }
+
+  document.getElementById('btnStartGame').addEventListener('click', ()=>{
+    const request = requestPhoneFullscreen();
+    reset();
+    enterGame();
+    saveGame();
+    handleFullscreenResult(request);
+  });
+
+  document.getElementById('btnLoadGame').addEventListener('click', ()=>{
+    const loaded = readSavedGame();
+    if(!loaded.ok){
+      startStatusEl.textContent = loaded.message;
+      return;
+    }
+    // No await before this call: the LOAD click is still an active gesture.
+    const request = requestPhoneFullscreen();
+    S = loaded.state;
+    story.innerHTML = loaded.storyHtml;
+    enemyEl.classList.toggle('dead', !S.enemyAlive);
+    render();
+    enterGame();
+    handleFullscreenResult(request);
+  });
+
+  // These listeners run after the original onclick game handlers.
+  // Save after each completed action/restart, without changing game logic.
+  ['btnAction', 'btnMove', 'btnFind', 'restart'].forEach(id=>{
+    document.getElementById(id).addEventListener('click', saveGame);
+  });
+
+  document.getElementById('fullscreenReenter').addEventListener('click', ()=>{
+    const request = requestPhoneFullscreen();
+    if(!request.supported){
+      handleFullscreenResult(request);
+      return;
+    }
+    fullscreenReenterEl.disabled = true;
+    request.promise.then(()=>{
+      fullscreenReenterEl.disabled = false;
+      if(document.fullscreenElement === phoneEl) hideFullscreenNotice();
+      else showFullscreenNotice('Không thể vào lại toàn màn hình.', fullscreenSupported());
+    }).catch(error=>{
+      fullscreenReenterEl.disabled = false;
+      console.warn('Không thể vào lại fullscreen:', error);
+      showFullscreenNotice('Không thể vào lại toàn màn hình. Game vẫn tiếp tục.', fullscreenSupported());
+    });
+  });
 </script>
 </body>
 </html>
