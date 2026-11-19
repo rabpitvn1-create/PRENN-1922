@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BACKROOMS</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--ink:#111;--paper:#fff;--muted:#f1f1f1;--yellow:#d8c56a;--yellow2:#efe3a1}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#e9e9e9;color:var(--ink);min-height:100vh;display:flex;justify-content:center;padding:12px}
+  .phone{width:100%;max-width:520px;background:var(--paper);border:3px solid var(--ink);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;min-height:calc(100vh - 24px);position:relative;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+  /* Header */
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:3px solid var(--ink)}
+  .title{font-weight:900;font-size:28px;letter-spacing:.5px}
+  .burger{width:52px;height:40px;border:2.5px solid var(--ink);border-radius:10px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+  .burger span{display:block;width:24px;height:3px;background:var(--ink);border-radius:2px}
+  .burger:active{transform:scale(.97)}
+  /* Snapshot */
+  .snapshot{border-bottom:3px solid var(--ink);height:250px;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--yellow2) 0%,var(--yellow) 62%,#b89b4e 62%,#a8893f 100%)}
+  .snapshot::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 2px,transparent 2px 64px),repeating-linear-gradient(0deg,rgba(255,255,255,.14) 0 10px,transparent 10px 22px);opacity:.5}
+  .roomtag{position:absolute;top:10px;left:12px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;z-index:3}
+  .sanity{position:absolute;top:10px;right:12px;background:#111;color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;z-index:3}
+  .actor{position:absolute;bottom:26px;width:120px;text-align:center;z-index:2;transition:transform .25s,opacity .3s}
+  .actor.player{left:22px}
+  .actor.enemy{right:22px}
+  .actor .label{margin-top:2px;font-size:13px;font-weight:800;background:rgba(255,255,255,.92);display:inline-block;padding:2px 8px;border:2px solid var(--ink);border-radius:999px}
+  .actor svg{width:96px;height:120px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.15))}
+  .actor.hit{animation:shake .3s}
+  .actor.swing svg{animation:swing .35s}
+  .actor.dead{opacity:0;transform:translateY(10px) scale(.92)}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  @keyframes swing{0%{transform:rotate(0)}50%{transform:rotate(-8deg) translateX(10px)}100%{transform:rotate(0)}}
+  .hpbar{height:8px;border:2px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden;margin-top:6px}
+  .hpbar i{display:block;height:100%;background:#111;width:100%;transition:width .3s}
+  .enemy .hpbar i{background:#b00020}
+  /* Game Master */
+  .gm{flex:1;display:flex;flex-direction:column;min-height:220px}
+  .gm-head{padding:10px 16px 0;font-size:12px;font-weight:900;letter-spacing:1.2px}
+  .gm-head small{display:block;letter-spacing:0;font-weight:600;color:#555;margin-top:2px;font-size:12px}
+  .story{flex:1;overflow-y:auto;padding:12px 16px 16px;line-height:1.65;font-size:16px}
+  .story p{margin-bottom:12px}
+  .story p.sys{font-weight:800}
+  .story p.loot{font-weight:700}
+  /* Actions */
+  .actions{border-top:3px solid var(--ink);padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;background:#fff}
+  .actions button{border:2.5px solid var(--ink);border-radius:12px;background:var(--muted);padding:16px 6px;font-size:19px;font-weight:900;letter-spacing:.4px;cursor:pointer}
+  .actions button:active{transform:scale(.97);background:#111;color:#fff}
+  .actions button:disabled{opacity:.45;cursor:not-allowed}
+  /* Menu overlay */
+  .menu{position:absolute;inset:0;background:rgba(0,0,0,.45);display:none;z-index:10}
+  .menu.open{display:block}
+  .panel{position:absolute;top:0;right:0;width:82%;max-width:340px;height:100%;background:#fff;border-left:3px solid var(--ink);padding:20px;overflow-y:auto}
+  .panel h2{font-size:22px;margin-bottom:6px}
+  .panel h3{margin:18px 0 8px;font-size:14px;letter-spacing:1px}
+  .panel p,.panel li{font-size:15px;line-height:1.6}
+  .panel ul{padding-left:18px}
+  .panel button{width:100%;margin-top:10px;border:2.5px solid var(--ink);border-radius:10px;background:#111;color:#fff;padding:12px;font-weight:800;cursor:pointer}
+  .panel button.ghost{background:#fff;color:#111}
+  .close{float:right}
+  @media (max-height:700px){.snapshot{height:210px}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- Khung trên: GAMETITLE + Nút Hamburger -->
+  <header>
+    <div class="title">[BACKROOMS]</div>
+    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+  </header>
+
+  <!-- Khung snapshot: Overlay NVC + Enemy -->
+  <section class="snapshot" aria-label="Khung snapshot">
+    <div class="roomtag" id="roomTag">LEVEL 0 — PHÒNG 1</div>
+    <div class="sanity" id="statTag">HP 100 · SANITY 100</div>
+
+    <div class="actor player" id="player">
+      <!-- NVC hướng về bên phải, cầm kiếm chĩa sang Enemy -->
+      <svg viewBox="0 0 100 120" aria-label="Overlay NVC">
+        <circle cx="38" cy="22" r="16" fill="none" stroke="#111" stroke-width="4"/>
+        <line x1="38" y1="38" x2="38" y2="78" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="38" y1="52" x2="16" y2="66" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="38" y1="54" x2="62" y2="64" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="38" y1="78" x2="22" y2="108" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="38" y1="78" x2="56" y2="108" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <!-- kiếm hướng phải -->
+        <line x1="62" y1="64" x2="90" y2="38" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="64" y1="56" x2="72" y2="66" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <div class="label">Overlay NVC</div>
+      <div class="hpbar"><i id="playerHp" style="width:100%"></i></div>
+    </div>
+
+    <div class="actor enemy" id="enemy">
+      <svg viewBox="0 0 100 120" aria-label="Enemy">
+        <path d="M28 18 Q22 2 34 6 Q42 8 40 20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <path d="M72 18 Q78 2 66 6 Q58 8 60 20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="50" cy="24" r="16" fill="none" stroke="#111" stroke-width="4"/>
+        <line x1="50" y1="40" x2="50" y2="80" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="50" y1="54" x2="28" y2="68" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="50" y1="54" x2="72" y2="68" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="50" y1="80" x2="34" y2="110" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+        <line x1="50" y1="80" x2="66" y2="110" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <div class="label">Enemy</div>
+      <div class="hpbar"><i id="enemyHp" style="width:100%"></i></div>
+    </div>
+  </section>
+
+  <!-- GAME MASTER / Kể chuyện -->
+  <section class="gm">
+    <div class="gm-head">GAME MASTER / KỂ CHUYỆN<small>Người kể chuyện sẽ cập nhật ở đây sau mỗi hành động.</small></div>
+    <div class="story" id="story">
+      <p class="sys">Bạn mở mắt trên tấm thảm ẩm, dưới tiếng đèn huỳnh quang rè rè không dứt.</p>
+      <p>Những bức tường vàng trải dài vô tận. Không cửa sổ. Không lối ra nào nhìn thấy được. Trước mặt bạn, một thực thể có sừng đang đứng im — nó chưa tấn công, nhưng nó đang nhìn thẳng vào bạn.</p>
+      <p>Chọn một hành động ở khung dưới: <b>ACTION</b> để đối đầu, <b>MOVE</b> để đi sang phòng khác, hoặc <b>FIND</b> để lục tìm thứ gì đó hữu ích.</p>
+    </div>
+  </section>
+
+  <!-- Khung Hành Động -->
+  <nav class="actions" aria-label="Khung Hành Động">
+    <button id="btnAction">ACTION</button>
+    <button id="btnMove">MOVE</button>
+    <button id="btnFind">FIND</button>
+  </nav>
+
+  <!-- Menu Hamburger -->
+  <div class="menu" id="menu">
+    <div class="panel">
+      <button class="ghost close" id="closeMenu" style="width:auto;padding:8px 12px;margin:0">Đóng ✕</button>
+      <h2>BACKROOMS</h2>
+      <p>Menu chính</p>
+      <h3>TRẠNG THÁI</h3>
+      <p id="menuStats">HP 100 · Sanity 100 · Phòng 1</p>
+      <h3>TÚI ĐỒ</h3>
+      <ul id="bag"><li>Trống</li></ul>
+      <button id="restart">Chơi lại từ đầu</button>
+      <button class="ghost" id="closeMenu2">Quay lại game</button>
+      <h3>LUẬT KHUNG</h3>
+      <p>Trên: tiêu đề + nút Hamburger. Giữa trên: khung snapshot (NVC bên trái, Enemy bên phải). Giữa: Game Master kể chuyện. Dưới: khung hành động ACTION / MOVE / FIND.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const story = document.getElementById('story');
+  const playerEl = document.getElementById('player');
+  const enemyEl = document.getElementById('enemy');
+  const playerHpEl = document.getElementById('playerHp');
+  const enemyHpEl = document.getElementById('enemyHp');
+  const roomTag = document.getElementById('roomTag');
+  const statTag = document.getElementById('statTag');
+  const menuStats = document.getElementById('menuStats');
+  const bagEl = document.getElementById('bag');
+  let S;
+  function reset(){
+    S = {hp:100, sanity:100, room:1, enemyHp:60, enemyMax:60, enemyAlive:true, bag:[]};
+    enemyEl.classList.remove('dead');
+    render();
+    story.innerHTML = '<p class="sys">Bạn mở mắt trên tấm thảm ẩm, dưới tiếng đèn huỳnh quang rè rè không dứt.</p><p>Những bức tường vàng trải dài vô tận. Trước mặt bạn, một thực thể có sừng đang đứng im.</p><p>Chọn <b>ACTION</b>, <b>MOVE</b> hoặc <b>FIND</b> ở khung dưới.</p>';
+  }
+  function render(){
+    playerHpEl.style.width = Math.max(0,S.hp)+'%';
+    enemyHpEl.style.width = S.enemyAlive ? Math.max(0, S.enemyHp/S.enemyMax*100)+'%' : '0%';
+    roomTag.textContent = 'LEVEL 0 — PHÒNG ' + S.room;
+    statTag.textContent = 'HP ' + S.hp + ' · SANITY ' + S.sanity;
+    menuStats.textContent = 'HP ' + S.hp + ' · Sanity ' + S.sanity + ' · Phòng ' + S.room + (S.enemyAlive ? ' · Enemy HP ' + S.enemyHp : ' · Không có Enemy');
+    bagEl.innerHTML = S.bag.length ? S.bag.map(x=>'<li>'+x+'</li>').join('') : '<li>Trống</li>';
+  }
+  function tell(html, cls){
+    const p=document.createElement('p'); if(cls) p.className=cls; p.innerHTML=html; story.appendChild(p); story.scrollTop=story.scrollHeight;
+  }
+  function hurtPlayer(dmg){
+    S.hp=Math.max(0,S.hp-dmg); playerEl.classList.remove('hit'); void playerEl.offsetWidth; playerEl.classList.add('hit');
+    if(S.hp<=0){ tell('<b>Bạn gục xuống trên tấm thảm vàng.</b> Tiếng đèn vẫn rè rè. Game Master khép lại câu chuyện tại đây — mở menu Hamburger và chọn “Chơi lại từ đầu”.','sys'); }
+  }
+  document.getElementById('btnAction').onclick=()=>{
+    if(S.hp<=0) return;
+    if(!S.enemyAlive){ tell('Không có Enemy nào trong phòng này. Bạn vung kiếm vào khoảng không — chỉ có tiếng gió rít qua giấy dán tường.'); return; }
+    const dmg=12+Math.floor(Math.random()*13); S.enemyHp-=dmg;
+    playerEl.classList.remove('swing'); void playerEl.offsetWidth; playerEl.classList.add('swing');
+    enemyEl.classList.remove('hit'); void enemyEl.offsetWidth; enemyEl.classList.add('hit');
+    if(S.enemyHp<=0){ S.enemyAlive=false; enemyEl.classList.add('dead'); S.sanity=Math.min(100,S.sanity+6); tell('<b>ACTION:</b> Lưỡi kiếm chém trúng — Enemy tan ra như khói đen, để lại vệt lạnh trên thảm. Bạn thắng phòng này. Hãy <b>MOVE</b> để đi tiếp.','sys'); }
+    else { tell('<b>ACTION:</b> Bạn chém trúng Enemy, gây <b>'+dmg+'</b> sát thương. Nó lùi lại, sừng rung lên, rồi phản đòn.'); hurtPlayer(5+Math.floor(Math.random()*8)); }
+    render();
+  };
+  document.getElementById('btnMove').onclick=()=>{
+    if(S.hp<=0) return;
+    S.room++; S.sanity=Math.max(0,S.sanity-4);
+    const encounter=Math.random()<0.6;
+    if(encounter){ S.enemyAlive=true; S.enemyMax=50+Math.floor(Math.random()*31); S.enemyHp=S.enemyMax; enemyEl.classList.remove('dead'); tell('<b>MOVE:</b> Bạn noclip qua góc tường và rơi vào <b>Phòng '+S.room+'</b>. Một Enemy mới đã đứng chờ sẵn, đầu hơi nghiêng.','sys'); }
+    else { S.enemyAlive=false; enemyEl.classList.add('dead'); tell('<b>MOVE:</b> Bạn bước vào <b>Phòng '+S.room+'</b> trống trơn. Không có Enemy — chỉ có mùi thảm cũ và một khoảng yên tĩnh hiếm hoi. Sanity -4.'); }
+    render();
+  };
+  const loot=['Nước hạnh nhân','Đèn pin yếu','Mảnh giấy: “Đừng nghe tiếng gõ”','Băng gạc cũ','Chìa khóa không răng'];
+  document.getElementById('btnFind').onclick=()=>{
+    if(S.hp<=0) return;
+    if(Math.random()<0.72){ const item=loot[Math.floor(Math.random()*loot.length)]; S.bag.push(item); S.sanity=Math.min(100,S.sanity+3); tell('<b>FIND:</b> Sau lớp giấy dán tường bong tróc, bạn tìm thấy <b>'+item+'</b>. Đã cho vào túi đồ (xem trong menu Hamburger).','loot'); }
+    else { tell('<b>FIND:</b> Bạn lục khắp phòng mà không thấy gì ngoài bụi và sợi thảm. Từ rất xa, có tiếng gõ ba lần vào tường.'); S.sanity=Math.max(0,S.sanity-5); }
+    render();
+  };
+  const menu=document.getElementById('menu');
+  document.getElementById('burger').onclick=()=>{render();menu.classList.add('open')};
+  document.getElementById('closeMenu').onclick=()=>menu.classList.remove('open');
+  document.getElementById('closeMenu2').onclick=()=>menu.classList.remove('open');
+  menu.addEventListener('click',e=>{if(e.target===menu)menu.classList.remove('open')});
+  document.getElementById('restart').onclick=()=>{reset();menu.classList.remove('open')};
+  reset();
+</script>
+</body>
+</html>
