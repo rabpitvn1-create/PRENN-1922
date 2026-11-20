@@ -21,7 +21,11 @@
   .roomtag{position:absolute;top:10px;left:12px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;z-index:3}
   .sanity{position:absolute;top:10px;right:12px;background:#111;color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;z-index:3}
   .actor{position:absolute;bottom:26px;width:120px;text-align:center;z-index:2;transition:transform .25s,opacity .3s}
-  .actor.player{left:22px}
+  .actor.player{left:10px;bottom:3%;height:94%;width:auto}
+  .actor.player img{display:block;height:100%;width:auto;border:3px solid var(--ink);border-radius:12px;background:#000}
+  .player-ui{position:absolute;left:14px;bottom:8px;z-index:3;text-align:center}
+  .player-ui .label{font-size:13px;font-weight:800;background:rgba(255,255,255,.92);display:inline-block;padding:2px 8px;border:2px solid var(--ink);border-radius:999px}
+  .player-ui .hpbar{width:110px}
   .actor.enemy{right:22px}
   .actor .label{margin-top:2px;font-size:13px;font-weight:800;background:rgba(255,255,255,.92);display:inline-block;padding:2px 8px;border:2px solid var(--ink);border-radius:999px}
   .actor svg{width:96px;height:120px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.15))}
@@ -113,19 +117,10 @@
     <div class="sanity" id="statTag">HP 100 · SANITY 100</div>
 
     <div class="actor player" id="player">
-      <!-- NVC hướng về bên phải, cầm kiếm chĩa sang Enemy -->
-      <svg viewBox="0 0 100 120" aria-label="Overlay NVC">
-        <circle cx="38" cy="22" r="16" fill="none" stroke="#111" stroke-width="4"/>
-        <line x1="38" y1="38" x2="38" y2="78" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="38" y1="52" x2="16" y2="66" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="38" y1="54" x2="62" y2="64" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="38" y1="78" x2="22" y2="108" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="38" y1="78" x2="56" y2="108" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <!-- kiếm hướng phải -->
-        <line x1="62" y1="64" x2="90" y2="38" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="64" y1="56" x2="72" y2="66" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-      </svg>
-      <div class="label">Overlay NVC</div>
+      <img src="assets/kael.jpg" alt="Kael — nhân vật chính">
+    </div>
+    <div class="player-ui">
+      <div class="label">KAEL</div>
       <div class="hpbar"><i id="playerHp" style="width:100%"></i></div>
     </div>
 
