@@ -22,7 +22,14 @@
   .actor{position:absolute;bottom:26px;width:120px;text-align:center;z-index:2;transition:transform .25s,opacity .3s}
   .actor.player{left:10px;bottom:3%;height:94%;width:auto}
   .actor.player img{display:block;height:100%;width:auto}
-  .actor.enemy{right:22px}
+  .actor.companion{bottom:3%;height:66%;width:auto;z-index:3}
+  .actor.companion img{display:block;height:100%;width:auto}
+  .actor.nhi{left:172px}
+  .actor.long{left:262px}
+  .actor.enemy{right:10px;top:46px;bottom:auto;width:64px;z-index:1}
+  .actor.enemy svg{width:52px;height:64px}
+  .actor.enemy .label{font-size:11px;padding:1px 6px}
+  .actor.enemy .hpbar{height:6px;margin-top:4px}
   .actor .label{margin-top:2px;font-size:13px;font-weight:800;background:rgba(255,255,255,.92);display:inline-block;padding:2px 8px;border:2px solid var(--ink);border-radius:999px}
   .actor svg{width:96px;height:120px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.15))}
   .actor.hit{animation:shake .3s}
@@ -113,6 +120,12 @@
 
     <div class="actor player" id="player">
       <img src="assets/kael.png" alt="Kael — nhân vật chính">
+    </div>
+    <div class="actor companion nhi">
+      <img src="assets/nhi.png" alt="Hoàng Thục Nhi">
+    </div>
+    <div class="actor companion long">
+      <img src="assets/long.png" alt="Tăng Chí Long">
     </div>
     <div class="actor enemy" id="enemy">
       <svg viewBox="0 0 100 120" aria-label="Enemy">
