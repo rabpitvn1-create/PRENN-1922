@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Riêng — gắn API</title>
+<style>
+  :root{--bg:#101418;--panel:#171d23;--panel2:#1e262e;--line:#2a343e;--tx:#e8eef3;--dim:#93a3b1;--acc:#d9a441;--acc2:#2f9e6e;--err:#e05d5d}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;height:100dvh}
+  header{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header .ttl{font-weight:700;font-size:16px}
+  header .st{margin-left:auto;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#777}
+  .dot.ok{background:var(--acc2)} .dot.warm{background:var(--acc)} .dot.bad{background:var(--err)}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--tx);border-radius:9px;padding:8px 12px;font-size:14px}
+  button:hover{border-color:var(--acc)}
+  #drawer{position:fixed;inset:0 auto 0 0;width:min(320px,88vw);background:var(--panel);border-right:1px solid var(--line);z-index:20;transform:translateX(-105%);transition:transform .2s;display:flex;flex-direction:column;padding:12px;gap:10px;overflow-y:auto}
+  #drawer.open{transform:none}
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:15;display:none}
+  #scrim.on{display:block}
+  #drawer h3{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+  .chat-item{display:flex;gap:6px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+  .chat-item.cur{border-color:var(--acc)}
+  .chat-item .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;cursor:pointer}
+  .chat-item .x{padding:2px 8px;font-size:12px}
+  label{font-size:12px;color:var(--dim);display:block;margin-bottom:4px}
+  input[type=text],input[type=password],textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--tx);padding:9px 10px;font-size:14px;font-family:inherit}
+  textarea{resize:vertical}
+  input[type=range]{width:100%}
+  .rowv{font-size:12px;color:var(--dim);text-align:right}
+  main{flex:1 1 auto;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:860px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:4px}
+  .msg .who{font-size:12px;color:var(--dim)}
+  .msg .body{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:15px;line-height:1.55;overflow-wrap:anywhere}
+  .msg.u .body{background:#1c2a1e;border-color:#2c4632}
+  .msg .body p{margin:0 0 8px} .msg .body p:last-child{margin-bottom:0}
+  .msg .body pre{background:#0b0f12;border:1px solid var(--line);border-radius:8px;padding:9px;overflow-x:auto;font-size:13px}
+  .msg .body code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+  .msg .body ul,.msg .body ol{margin:0 0 8px 20px}
+  .msg .meta{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim)}
+  .msg .meta button{padding:2px 9px;font-size:12px}
+  .err .body{border-color:var(--err);color:#f0b9b9}
+  footer{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  .composer{max-width:860px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+  #inp{flex:1;max-height:38dvh;min-height:44px}
+  #send{background:var(--acc);color:#161207;font-weight:700;border:none;min-height:44px}
+  #stop{display:none;background:var(--err);color:#fff;border:none;min-height:44px}
+  .hint{max-width:860px;margin:6px auto 0;font-size:12px;color:var(--dim)}
+  .empty{margin:auto;text-align:center;color:var(--dim);max-width:420px;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <button id="menuBtn" aria-label="Menu">☰</button>
+  <div class="ttl">AI Riêng</div>
+  <div class="st"><span class="dot" id="dot"></span><span id="stTxt">đang nối…</span></div>
+</header>
+
+<div id="scrim"></div>
+<aside id="drawer">
+  <button id="newChat">+ Đoạn chat mới</button>
+  <h3>Các đoạn chat</h3>
+  <div id="chatList" style="display:flex;flex-direction:column;gap:6px"></div>
+  <h3>Lane</h3>
+  <div>
+    <label for="lane">Đường gọi API — cho đoạn chat này</label>
+    <select id="lane">
+      <option value="gemini">Gemini — qua proxy Render của anh</option>
+      <option value="premium">Premium — Claude Haiku 5.5 (Vilao qua proxy Render)</option>
+    </select>
+  </div>
+  <div id="premBox" style="display:none">
+    <label for="pkey">Premium API key (Vilao) — không bắt buộc</label>
+    <input type="password" id="pkey" autocomplete="off" placeholder="sk-…">
+    <div class="rowv">Để trống: app gọi qua proxy Premium trên Render, key nằm ở server. Chỉ điền khi muốn gọi thẳng Vilao; key điền vào chỉ lưu trong trình duyệt này, không nằm trong file app.</div>
+  </div>
+  <h3>Model</h3>
+  <div>
+    <label for="model" id="modelLabel">Tên model (gọi qua proxy Gemini của anh)</label>
+    <input type="text" id="model" list="models" autocomplete="off">
+    <datalist id="models"><option value="gemini-3.5-flash-lite"></option><option value="occ/claude-haiku-5-5"></option></datalist>
+    <div class="rowv" id="modelHint">gemini-3.5-flash-lite = đã kiểm chứng chạy tốt. Model khác: gõ tên rồi thử.</div>
+  </div>
+  <h3>Chỉ thị hệ thống (system prompt) — cho đoạn chat này</h3>
+  <textarea id="sys" rows="5" placeholder="Ví dụ: Bạn phải phản biện mọi luận điểm trước khi đồng ý…"></textarea>
+  <h3>Thông số</h3>
+  <div>
+    <label>Temperature: <span id="tempV"></span></label>
+    <input type="range" id="temp" min="0" max="2" step="0.1">
+    <label style="margin-top:8px">Độ dài trả lời tối đa (token): <span id="mtV"></span></label>
+    <input type="range" id="mt" min="256" max="8192" step="256">
+  </div>
+  <button id="wipe" style="margin-top:auto;color:var(--err)">Xoá toàn bộ dữ liệu app</button>
+</aside>
+
+<main id="msgs"></main>
+
+<footer>
+  <div class="composer">
+    <textarea id="inp" rows="1" placeholder="Nhập tin nhắn… (Enter để gửi, Shift+Enter xuống dòng)"></textarea>
+    <button id="stop">Dừng</button>
+    <button id="send">Gửi</button>
+  </div>
+  <div class="hint">Hai lane: Gemini và Premium đều qua proxy Render của anh (key giữ ở server, không cần dán key trong app) — không qua app ChatGPT/Gemini. Lần mở đầu ngày mỗi proxy có thể mất ~30–60 giây để đánh thức server.</div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script>
+"use strict";
+const PROXY = "https://backrooms-gemini-proxy.onrender.com";
+const PPROXY = "https://backrooms-premium-proxy.onrender.com";
+const VILAO = "https://api.vilao.ai/v1";
+const LS = "ai-rieng-v1";
+const LSK = "ai-rieng-premium-key";
+let S;
+try { S = JSON.parse(localStorage.getItem(LS)) || null; } catch(e){ S = null; }
+if (!S || !Array.isArray(S.chats)) S = { chats: [], cur: null, temp: 0.7, mt: 4096 };
+if (!S.chats.length) newChat(true);
+function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
+function cur(){ return S.chats.find(c => c.id === S.cur) || S.chats[0]; }
+function newChat(silent){
+  const c = { id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+              title: "Đoạn chat mới", system: "", lane: "gemini", model: "gemini-3.5-flash-lite", msgs: [] };
+  S.chats.unshift(c); S.cur = c.id; save(); if (!silent) renderAll(); return c;
+}
+const $ = id => document.getElementById(id);
+const msgsEl = $("msgs");
+
+function md(t){
+  if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(t));
+  return t.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/\n/g,"<br>");
+}
+function renderList(){
+  $("chatList").innerHTML = "";
+  for (const c of S.chats){
+    const d = document.createElement("div");
+    d.className = "chat-item" + (c.id === S.cur ? " cur" : "");
+    const t = document.createElement("div"); t.className = "t"; t.textContent = c.title;
+    t.title = "Bấm để mở · bấm đúp để đổi tên";
+    t.onclick = () => { S.cur = c.id; save(); renderAll(); closeDrawer(); };
+    t.ondblclick = () => { const n = prompt("Đổi tên đoạn chat:", c.title); if (n){ c.title = n; save(); renderList(); } };
+    const x = document.createElement("button"); x.className = "x"; x.textContent = "✕";
+    x.onclick = () => { if (!confirm("Xoá đoạn chat này?")) return;
+      S.chats = S.chats.filter(k => k.id !== c.id);
+      if (!S.chats.length) newChat(true);
+      if (S.cur === c.id) S.cur = S.chats[0].id;
+      save(); renderAll(); };
+    d.append(t, x); $("chatList").appendChild(d);
+  }
+}
+function renderMsgs(){
+  const c = cur(); msgsEl.innerHTML = "";
+  if (!c.msgs.length){
+    msgsEl.innerHTML = '<div class="empty">Đoạn chat trống.<br>Gõ tin nhắn đầu tiên ở dưới để bắt đầu.<br>Muốn AI làm việc theo luật riêng (ví dụ: bắt buộc phản biện), mở menu ☰ và điền vào ô Chỉ thị hệ thống.</div>';
+    return;
+  }
+  for (const m of c.msgs){
+    const d = document.createElement("div");
+    d.className = "msg " + (m.r === "u" ? "u" : "a") + (m.err ? " err" : "");
+    const who = document.createElement("div"); who.className = "who";
+    who.textContent = m.r === "u" ? "Bạn" : "AI";
+    const b = document.createElement("div"); b.className = "body"; b.innerHTML = md(m.t);
+    d.appendChild(who); d.appendChild(b);
+    const meta = document.createElement("div"); meta.className = "meta";
+    if (m.tok) { const s = document.createElement("span"); s.textContent = m.tok + " token"; meta.appendChild(s); }
+    const cp = document.createElement("button"); cp.textContent = "Chép";
+    cp.onclick = () => navigator.clipboard && navigator.clipboard.writeText(m.t);
+    meta.appendChild(cp); d.appendChild(meta);
+    msgsEl.appendChild(d);
+  }
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+function renderAll(){
+  const c = cur();
+  const lane = c.lane || "gemini";
+  $("lane").value = lane;
+  $("premBox").style.display = lane === "premium" ? "block" : "none";
+  $("pkey").value = localStorage.getItem(LSK) || "";
+  $("modelLabel").textContent = lane === "premium" ? "Tên model (Premium — qua proxy Render của anh)" : "Tên model (gọi qua proxy Gemini của anh)";
+  $("modelHint").textContent = lane === "premium" ? "occ/claude-haiku-5-5 = Premium mới, đã kiểm chứng chạy tốt." : "gemini-3.5-flash-lite = đã kiểm chứng chạy tốt. Model khác: gõ tên rồi thử.";
+  $("model").value = c.model; $("sys").value = c.system;
+  $("temp").value = S.temp; $("tempV").textContent = S.temp;
+  $("mt").value = S.mt; $("mtV").textContent = S.mt;
+  renderList(); renderMsgs();
+}
+function openDrawer(){ $("drawer").classList.add("open"); $("scrim").classList.add("on"); }
+function closeDrawer(){ $("drawer").classList.remove("open"); $("scrim").classList.remove("on"); }
+$("menuBtn").onclick = openDrawer; $("scrim").onclick = closeDrawer;
+$("newChat").onclick = () => { newChat(); closeDrawer(); };
+$("lane").onchange = e => { const c = cur(); c.lane = e.target.value;
+  if (c.lane === "premium" && !/^occ\//.test(c.model)) c.model = "occ/claude-haiku-5-5";
+  if (c.lane === "gemini" && /^occ\//.test(c.model)) c.model = "gemini-3.5-flash-lite";
+  save(); renderAll(); ping(); };
+$("pkey").onchange = e => { localStorage.setItem(LSK, e.target.value.trim()); ping(); };
+$("model").onchange = e => { const c = cur(); c.model = e.target.value.trim() || ((c.lane || "gemini") === "premium" ? "occ/claude-haiku-5-5" : "gemini-3.5-flash-lite"); save(); };
+$("sys").onchange = e => { cur().system = e.target.value; save(); };
+$("temp").oninput = e => { S.temp = +e.target.value; $("tempV").textContent = S.temp; save(); };
+$("mt").oninput = e => { S.mt = +e.target.value; $("mtV").textContent = S.mt; save(); };
+$("wipe").onclick = () => { if (confirm("Xoá toàn bộ đoạn chat và cài đặt của app?")){ localStorage.removeItem(LS); location.reload(); } };
+
+/* --- trạng thái server --- */
+async function ping(){
+  const dot = $("dot"), tx = $("stTxt");
+  const cc = cur();
+  if (cc && (cc.lane || "gemini") === "premium"){
+    if ((localStorage.getItem(LSK) || "").trim()){ dot.className = "dot ok"; tx.textContent = "Premium sẵn sàng (gọi thẳng Vilao)"; return; }
+    dot.className = "dot warm"; tx.textContent = "đang đánh thức proxy Premium…";
+    try {
+      const r = await fetch(PPROXY + "/health");
+      if (!r.ok) throw 0;
+      dot.className = "dot ok"; tx.textContent = "Premium sẵn sàng (proxy Render)";
+    } catch(e){ dot.className = "dot bad"; tx.textContent = "chưa nối được proxy Premium"; }
+    return;
+  }
+  dot.className = "dot warm"; tx.textContent = "đang đánh thức server…";
+  try {
+    const r = await fetch(PROXY + "/health");
+    if (!r.ok) throw 0;
+    dot.className = "dot ok"; tx.textContent = "server sẵn sàng";
+  } catch(e){ dot.className = "dot bad"; tx.textContent = "chưa nối được server"; }
+}
+ping();
+
+/* --- gửi tin --- */
+let aborter = null;
+async function send(){
+  const inp = $("inp"), text = inp.value.trim();
+  if (!text || aborter) return;
+  const c = cur();
+  c.msgs.push({ r: "u", t: text });
+  if (c.msgs.length === 1) c.title = text.slice(0, 42);
+  inp.value = ""; inp.style.height = "auto";
+  save(); renderAll();
+  const wait = { r: "a", t: "Đang chờ trả lời…" };
+  c.msgs.push(wait); renderMsgs();
+  aborter = new AbortController();
+  $("stop").style.display = "block"; $("send").style.display = "none";
+  const done = (msg) => { c.msgs.pop(); c.msgs.push(msg); };
+  try {
+    if ((c.lane || "gemini") === "premium") await sendPremium(c, done);
+    else await sendGemini(c, done);
+  } catch(e){
+    c.msgs.pop();
+    c.msgs.push({ r: "a", err: true, t: e.name === "AbortError" ? "Đã dừng theo yêu cầu của bạn." : "Không gọi được máy chủ (mạng hoặc dịch vụ chưa sẵn sàng). Đợi ít giây rồi gửi lại." });
+  }
+  aborter = null;
+  $("stop").style.display = "none"; $("send").style.display = "block";
+  save(); renderAll();
+}
+async function sendGemini(c, done){
+  const contents = [];
+  if (c.system && c.system.trim()){
+    contents.push({ role: "user", parts: [{ text: "Chỉ thị hệ thống cho toàn bộ đoạn chat này:\n" + c.system.trim() }] });
+    contents.push({ role: "model", parts: [{ text: "Đã hiểu. Tôi sẽ làm theo chỉ thị đó." }] });
+  }
+  for (const m of c.msgs.slice(0, -1)) if (!m.err)
+    contents.push({ role: m.r === "u" ? "user" : "model", parts: [{ text: m.t }] });
+  const r = await fetch(PROXY + "/gemini", {
+    method: "POST", headers: { "Content-Type": "application/json" }, signal: aborter.signal,
+    body: JSON.stringify({ model: c.model, contents,
+      generationConfig: { temperature: S.temp, maxOutputTokens: S.mt } })
+  });
+  const j = await r.json().catch(() => null);
+  if (!r.ok || !j || j.error){
+    const why = j && j.error ? String(j.error).slice(0, 300) : ("HTTP " + r.status);
+    done({ r: "a", err: true, t: "Lỗi từ proxy: " + why + (r.status === 502 ? "\n(Tất cả key Gemini phía proxy đều lỗi — thường là hết quota hoặc model không tồn tại. Thử lại sau, hoặc kiểm tra tên model.)" : "") });
+  } else {
+    const parts = (((j.candidates || [])[0] || {}).content || {}).parts || [];
+    const out = parts.map(p => p.text || "").join("") || "(trả lời rỗng)";
+    const tok = j.usageMetadata && j.usageMetadata.totalTokenCount;
+    done({ r: "a", t: out, tok: tok || null });
+  }
+}
+async function sendPremium(c, done){
+  const key = (localStorage.getItem(LSK) || "").trim();
+  const messages = [];
+  if (c.system && c.system.trim()) messages.push({ role: "system", content: c.system.trim() });
+  for (const m of c.msgs.slice(0, -1)) if (!m.err)
+    messages.push({ role: m.r === "u" ? "user" : "assistant", content: m.t });
+  const viaProxy = !key;
+  const r = await fetch(viaProxy ? PPROXY + "/chat" : VILAO + "/chat/completions", {
+    method: "POST", signal: aborter.signal,
+    headers: viaProxy ? { "Content-Type": "application/json" } : { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+    body: JSON.stringify({ model: c.model, messages, temperature: S.temp, max_tokens: S.mt })
+  });
+  const j = await r.json().catch(() => null);
+  if (!r.ok || !j || j.error){
+    const why = j && j.error ? (j.error.message || String(j.error)).slice(0, 300) : ("HTTP " + r.status);
+    done({ r: "a", err: true, t: "Lỗi từ Premium (" + (viaProxy ? "proxy Render" : "Vilao") + "): " + why });
+  } else {
+    const out = (((j.choices || [])[0] || {}).message || {}).content || "(trả lời rỗng)";
+    const tok = j.usage && j.usage.total_tokens;
+    done({ r: "a", t: out, tok: tok || null });
+  }
+}
+$("send").onclick = send;
+$("stop").onclick = () => aborter && aborter.abort();
+$("inp").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
+});
+$("inp").addEventListener("input", e => {
+  e.target.style.height = "auto";
+  e.target.style.height = Math.min(e.target.scrollHeight, innerHeight * 0.38) + "px";
+});
+renderAll();
+</script>
+</body>
+</html>
