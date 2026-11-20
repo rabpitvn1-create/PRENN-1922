@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BACKROOMS</title>
+<title>PRENN 1922</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{--ink:#111;--paper:#fff;--muted:#f1f1f1;--yellow:#d8c56a;--yellow2:#efe3a1}
@@ -18,14 +18,10 @@
   /* Snapshot */
   .snapshot{border-bottom:3px solid var(--ink);height:250px;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--yellow2) 0%,var(--yellow) 62%,#b89b4e 62%,#a8893f 100%)}
   .snapshot::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 2px,transparent 2px 64px),repeating-linear-gradient(0deg,rgba(255,255,255,.14) 0 10px,transparent 10px 22px);opacity:.5}
-  .roomtag{position:absolute;top:10px;left:12px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;z-index:3}
   .sanity{position:absolute;top:10px;right:12px;background:#111;color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;z-index:3}
   .actor{position:absolute;bottom:26px;width:120px;text-align:center;z-index:2;transition:transform .25s,opacity .3s}
   .actor.player{left:10px;bottom:3%;height:94%;width:auto}
   .actor.player img{display:block;height:100%;width:auto}
-  .player-ui{position:absolute;left:14px;bottom:8px;z-index:3;text-align:center;background:rgba(255,255,255,.94);border:2px solid var(--ink);border-radius:10px;padding:6px 8px}
-  .player-ui .label{font-size:13px;font-weight:800;background:rgba(255,255,255,.92);display:inline-block;padding:2px 8px;border:2px solid var(--ink);border-radius:999px}
-  .player-ui .hpbar{width:110px}
   .actor.enemy{right:22px}
   .actor .label{margin-top:2px;font-size:13px;font-weight:800;background:rgba(255,255,255,.92);display:inline-block;padding:2px 8px;border:2px solid var(--ink);border-radius:999px}
   .actor svg{width:96px;height:120px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.15))}
@@ -94,7 +90,7 @@
   <div id="startScreen" class="start-screen" role="dialog" aria-modal="true" aria-labelledby="startTitle">
     <div class="start-card">
       <p class="start-kicker">BẢN DỰNG TẠM</p>
-      <h1 id="startTitle">[BACKROOMS]</h1>
+      <h1 id="startTitle">PRENN 1922</h1>
       <p>Chọn cách vào trò chơi.</p>
       <div class="start-options">
         <button id="btnStartGame" type="button">START GAME</button>
@@ -107,23 +103,17 @@
 
   <!-- Khung trên: GAMETITLE + Nút Hamburger -->
   <header inert>
-    <div class="title">[BACKROOMS]</div>
+    <div class="title">PRENN 1922</div>
     <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
   </header>
 
   <!-- Khung snapshot: Overlay NVC + Enemy -->
   <section class="snapshot" aria-label="Khung snapshot" inert>
-    <div class="roomtag" id="roomTag">LEVEL 0 — PHÒNG 1</div>
     <div class="sanity" id="statTag">HP 100 · SANITY 100</div>
 
     <div class="actor player" id="player">
       <img src="assets/kael.png" alt="Kael — nhân vật chính">
     </div>
-    <div class="player-ui">
-      <div class="label">KAEL</div>
-      <div class="hpbar"><i id="playerHp" style="width:100%"></i></div>
-    </div>
-
     <div class="actor enemy" id="enemy">
       <svg viewBox="0 0 100 120" aria-label="Enemy">
         <path d="M28 18 Q22 2 34 6 Q42 8 40 20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
@@ -167,7 +157,7 @@
   <div class="menu" id="menu" inert>
     <div class="panel">
       <button class="ghost close" id="closeMenu" style="width:auto;padding:8px 12px;margin:0">Đóng ✕</button>
-      <h2>BACKROOMS</h2>
+      <h2>PRENN 1922</h2>
       <p>Menu chính</p>
       <h3>TRẠNG THÁI</h3>
       <p id="menuStats">HP 100 · Sanity 100 · Phòng 1</p>
@@ -185,9 +175,7 @@
   const story = document.getElementById('story');
   const playerEl = document.getElementById('player');
   const enemyEl = document.getElementById('enemy');
-  const playerHpEl = document.getElementById('playerHp');
   const enemyHpEl = document.getElementById('enemyHp');
-  const roomTag = document.getElementById('roomTag');
   const statTag = document.getElementById('statTag');
   const menuStats = document.getElementById('menuStats');
   const bagEl = document.getElementById('bag');
@@ -199,9 +187,7 @@
     story.innerHTML = '<p class="sys">Bạn mở mắt trên tấm thảm ẩm, dưới tiếng đèn huỳnh quang rè rè không dứt.</p><p>Những bức tường vàng trải dài vô tận. Trước mặt bạn, một thực thể có sừng đang đứng im.</p><p>Chọn <b>ACTION</b>, <b>MOVE</b> hoặc <b>FIND</b> ở khung dưới.</p>';
   }
   function render(){
-    playerHpEl.style.width = Math.max(0,S.hp)+'%';
     enemyHpEl.style.width = S.enemyAlive ? Math.max(0, S.enemyHp/S.enemyMax*100)+'%' : '0%';
-    roomTag.textContent = 'LEVEL 0 — PHÒNG ' + S.room;
     statTag.textContent = 'HP ' + S.hp + ' · SANITY ' + S.sanity;
     menuStats.textContent = 'HP ' + S.hp + ' · Sanity ' + S.sanity + ' · Phòng ' + S.room + (S.enemyAlive ? ' · Enemy HP ' + S.enemyHp : ' · Không có Enemy');
     bagEl.innerHTML = S.bag.length ? S.bag.map(x=>'<li>'+x+'</li>').join('') : '<li>Trống</li>';
