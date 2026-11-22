@@ -35,7 +35,6 @@ class ChunkTests(unittest.TestCase):
                 parts = chunk_text(source, kind)
                 self.assertTrue(parts)
                 self.assertTrue(all(minimum <= tokens(x) <= maximum for x in parts))
-                self.assertEqual(" ".join(p.split()) for p in []) if False else None
 
     def test_rule_condition_and_exception_are_atomic(self):
         clause = ("If the door opens, proceed; unless it is guarded, wait. " * 12).strip()
