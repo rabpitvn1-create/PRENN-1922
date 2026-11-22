@@ -1,4 +1,4 @@
-"""SQLite schema for an initial local CRS store."""
+"""SQLite schema for the local CRS registry and immutable codex shards."""
 
 REGISTRY_SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS cross_codex_relations (
 );
 CREATE TABLE IF NOT EXISTS release_manifest (
     release_id TEXT PRIMARY KEY, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    registry_sha256 TEXT, published INTEGER NOT NULL DEFAULT 0
+    registry_sha256 TEXT, published INTEGER NOT NULL DEFAULT 0,
+    activated INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS release_shards (
     release_id TEXT NOT NULL REFERENCES release_manifest(release_id),
@@ -42,7 +43,7 @@ CREATE TABLE IF NOT EXISTS section_toc (
 );
 CREATE TABLE IF NOT EXISTS title_index (
     code TEXT PRIMARY KEY REFERENCES chunk_locator(code), title_key TEXT NOT NULL,
-    breadcrumb TEXT NOT NULL
+    breadcrumb TEXT NOT NULL, title_exact TEXT, title_folded TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_titles ON title_index(title_key);
 CREATE TABLE IF NOT EXISTS game_sessions (
@@ -80,6 +81,10 @@ CREATE TABLE IF NOT EXISTS chunk_relations (
     source_code TEXT NOT NULL, target_code TEXT NOT NULL,
     relation TEXT NOT NULL, release_id TEXT NOT NULL,
     PRIMARY KEY(source_code, target_code, relation, release_id)
+);
+CREATE TABLE IF NOT EXISTS staged_sections (
+    cdx TEXT NOT NULL, section INTEGER NOT NULL, group_name TEXT NOT NULL,
+    title TEXT NOT NULL, PRIMARY KEY(cdx, section)
 );
 CREATE TRIGGER IF NOT EXISTS block_published_update
 BEFORE UPDATE ON chunks WHEN OLD.published = 1
