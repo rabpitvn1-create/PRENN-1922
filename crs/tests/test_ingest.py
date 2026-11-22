@@ -26,7 +26,7 @@ class ChunkTests(unittest.TestCase):
     def test_type_boundaries(self):
         cases = {
             "FACT": ("An item is recorded in the ledger. " * 36, 50, 150),
-            "RULE": ("If the door opens, proceed; unless it is guarded, wait. " * 19, 100, 250),
+            "RULE": ("If the door opens, proceed; unless it is guarded, wait. " * 14, 100, 250),
             "LORE": ("History survives in the library under the mountain. " * 55, 200, 400),
             "NARRATIVE": ("The traveler listened and turned toward the fire. " * 85, 300, 500),
         }
