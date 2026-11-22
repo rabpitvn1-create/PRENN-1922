@@ -15,31 +15,43 @@
   .burger{width:52px;height:40px;border:2.5px solid var(--ink);border-radius:10px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
   .burger span{display:block;width:24px;height:3px;background:var(--ink);border-radius:2px}
   .burger:active{transform:scale(.97)}
-  /* Snapshot */
-  .snapshot{border-bottom:3px solid var(--ink);height:250px;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--yellow2) 0%,var(--yellow) 62%,#b89b4e 62%,#a8893f 100%)}
-  .snapshot::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 2px,transparent 2px 64px),repeating-linear-gradient(0deg,rgba(255,255,255,.14) 0 10px,transparent 10px 22px);opacity:.5}
-  .sanity{position:absolute;top:10px;right:12px;background:#111;color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;z-index:3}
-  .actor{position:absolute;bottom:26px;width:120px;text-align:center;z-index:2;transition:transform .25s,opacity .3s}
-  .actor.player{left:0;bottom:1.2%;height:86%;width:auto}
-  .actor.player img{display:block;height:100%;width:auto}
-  .actor.companion{width:auto;z-index:3}
-  .actor.companion img{display:block;height:100%;width:auto}
-  .actor.nhi{left:134px;bottom:-3.8%;height:102.4%}
-  .actor.long{left:232px;bottom:-3.2%;height:101%}
-  .actor.enemy{right:2px;top:42px;bottom:auto;width:48px;z-index:1}
-  .actor.enemy svg{width:40px;height:48px}
-  .actor.enemy .label{font-size:10px;padding:1px 5px}
-  .actor.enemy .hpbar{height:5px;margin-top:4px}
-  .actor .label{margin-top:2px;font-size:13px;font-weight:800;background:rgba(255,255,255,.92);display:inline-block;padding:2px 8px;border:2px solid var(--ink);border-radius:999px}
-  .actor svg{width:96px;height:120px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.15))}
+  /* Snapshot — SAMPLE COMBAT SCENE 01 (Backrooms, Room 1).
+     Scene layers (all behind the two character overlays):
+       base gradient  = yellow wallpaper wall (top ~68%) over a mustard carpet floor (bottom ~32%)
+       ::before       = ceiling strip with fluorescent light panels + wallpaper panel seams
+       ::after        = the ground: a clear horizon/baseboard line at 68%, carpet texture
+                        with receding rows, and shading so the floor reads as a floor
+     Characters stand on this ground: their feet sit at the overlays' bottom edge
+     (bottom:2.5%) on the carpet, with a soft contact shadow under each actor.
+     Separator drawn as inset shadow (not a border) so the Snapshot's visible height
+     is exactly its layout height — overlay height:95% then measures exactly 95% of it. */
+  .snapshot{box-shadow:inset 0 -3px 0 var(--ink);height:250px;position:relative;overflow:hidden;background:linear-gradient(180deg,#e6d586 0%,var(--yellow2) 34%,var(--yellow) 68%,#8a6527 68%,#a37c31 82%,#8a6527 100%)}
+  .snapshot::before{content:"";position:absolute;inset:0;z-index:0;background:
+    repeating-linear-gradient(90deg,rgba(255,255,238,.95) 0 56px,rgba(255,255,238,0) 56px 168px),
+    linear-gradient(180deg,rgba(96,74,20,.45) 0 3px,rgba(96,74,20,0) 22px),
+    repeating-linear-gradient(90deg,rgba(110,86,26,.20) 0 2px,transparent 2px 64px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.12) 0 9px,transparent 9px 21px);
+    background-size:100% 16px,100% 24px,100% 68%,100% 68%;background-position:top left,top left,top left,top left;background-repeat:no-repeat;opacity:.85}
+  .snapshot::after{content:"";position:absolute;left:0;right:0;top:68%;bottom:0;z-index:0;background:
+    linear-gradient(180deg,rgba(52,36,4,.85) 0 3px,rgba(255,242,190,.35) 3px 5px,transparent 7px),
+    repeating-linear-gradient(0deg,rgba(66,45,8,.22) 0 2px,transparent 2px 15px),
+    repeating-linear-gradient(90deg,rgba(66,45,8,.13) 0 2px,transparent 2px 44px),
+    linear-gradient(180deg,#b9903f 0%,#9a742e 55%,#856124 100%);
+    box-shadow:inset 0 12px 14px rgba(56,38,2,.40)}
+  /* Snapshot combat overlays: exactly two image-only character overlays.
+     Each overlay is 95% of the Snapshot height; width follows the image's
+     natural aspect ratio (width:auto, no fixed narrow frame).
+     Kael (.player) always renders above the other character. */
+  .actor{position:absolute;bottom:2.5%;height:95%;width:auto;z-index:2;transition:transform .25s,opacity .3s}
+  .actor::after{content:"";position:absolute;left:10%;right:10%;bottom:-5px;height:13px;background:radial-gradient(ellipse at center,rgba(43,28,0,.50) 0%,rgba(43,28,0,0) 68%);z-index:-1}
+  .actor img{display:block;height:100%;width:auto;filter:drop-shadow(0 3px 2px rgba(43,28,0,.28))}
+  .actor.player{left:0;z-index:10}
+  .actor.companion{right:4px;left:auto;z-index:2}
   .actor.hit{animation:shake .3s}
-  .actor.swing svg{animation:swing .35s}
+  .actor.swing img{animation:swing .35s}
   .actor.dead{opacity:0;transform:translateY(10px) scale(.92)}
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
   @keyframes swing{0%{transform:rotate(0)}50%{transform:rotate(-8deg) translateX(10px)}100%{transform:rotate(0)}}
-  .hpbar{height:8px;border:2px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden;margin-top:6px}
-  .hpbar i{display:block;height:100%;background:#111;width:100%;transition:width .3s}
-  .enemy .hpbar i{background:#b00020}
   /* Game Master */
   .gm{flex:1;display:flex;flex-direction:column;min-height:220px}
   .gm-head{padding:10px 16px 0;font-size:12px;font-weight:900;letter-spacing:1.2px}
@@ -65,8 +77,9 @@
   .panel button.ghost{background:#fff;color:#111}
   .close{float:right}
   @media (max-height:700px){.snapshot{height:210px}}
-  @media (max-width:480px){.actor.player{height:82%}.actor.nhi{left:128px;bottom:-3.6%;height:97.5%}.actor.long{left:221px;bottom:-3%;height:96.2%}.actor.enemy{width:40px}.actor.enemy svg{width:32px;height:38px}.actor.enemy .label{font-size:9px;padding:1px 4px}.actor.enemy .hpbar{height:4px}}
-  @media (max-width:400px){.actor.player{height:75.6%;bottom:1.3%}.actor.nhi{left:118px;bottom:-3.1%;height:89.8%}.actor.long{left:203px;bottom:-2.6%;height:88.5%}.actor.enemy{width:36px}.actor.enemy svg{width:28px;height:34px}.actor.enemy .label{font-size:8px;padding:1px 3px}}
+  /* Narrow screens: overlays keep the same 95% Snapshot height and Kael stays on top */
+  @media (max-width:480px){.actor{height:95%}.actor.player{z-index:10}.actor.companion{z-index:2}}
+  @media (max-width:400px){.actor{height:95%}.actor.player{z-index:10}.actor.companion{z-index:2}}
 
   /* Start screen */
   .start-screen{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:24px;background:linear-gradient(135deg,#111 0%,#242424 62%,#3b321c 100%);color:#fff;text-align:center}
@@ -118,30 +131,15 @@
 
   <!-- Khung snapshot: Overlay NVC + Enemy -->
   <section class="snapshot" aria-label="Khung snapshot" inert>
-    <div class="sanity" id="statTag">HP 100 · SANITY 100</div>
-
+    <!-- SAMPLE COMBAT SNAPSHOT 01 — Backrooms Room 1: Kael vs. the encounter, Nhi supporting.
+         Exactly two overlays, image only (no name, HP bar, status or labels).
+         Kael uses the combat artwork from Drive (assets/kael.png) and is always the top layer.
+         To view: open index.html and press START GAME — this Snapshot is the scene at the top. -->
     <div class="actor player" id="player">
       <img src="assets/kael.png" alt="Kael — nhân vật chính">
     </div>
-    <div class="actor companion nhi">
+    <div class="actor companion nhi" id="companion">
       <img src="assets/nhi.png" alt="Hoàng Thục Nhi">
-    </div>
-    <div class="actor companion long">
-      <img src="assets/long.png" alt="Tăng Chí Long">
-    </div>
-    <div class="actor enemy" id="enemy">
-      <svg viewBox="0 0 100 120" aria-label="Enemy">
-        <path d="M28 18 Q22 2 34 6 Q42 8 40 20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <path d="M72 18 Q78 2 66 6 Q58 8 60 20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <circle cx="50" cy="24" r="16" fill="none" stroke="#111" stroke-width="4"/>
-        <line x1="50" y1="40" x2="50" y2="80" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="50" y1="54" x2="28" y2="68" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="50" y1="54" x2="72" y2="68" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="50" y1="80" x2="34" y2="110" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-        <line x1="50" y1="80" x2="66" y2="110" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-      </svg>
-      <div class="label">Enemy</div>
-      <div class="hpbar"><i id="enemyHp" style="width:100%"></i></div>
     </div>
   </section>
 
@@ -189,21 +187,15 @@
 <script>
   const story = document.getElementById('story');
   const playerEl = document.getElementById('player');
-  const enemyEl = document.getElementById('enemy');
-  const enemyHpEl = document.getElementById('enemyHp');
-  const statTag = document.getElementById('statTag');
   const menuStats = document.getElementById('menuStats');
   const bagEl = document.getElementById('bag');
   let S;
   function reset(){
     S = {hp:100, sanity:100, room:1, enemyHp:60, enemyMax:60, enemyAlive:true, bag:[]};
-    enemyEl.classList.remove('dead');
     render();
     story.innerHTML = '<p class="sys">Bạn mở mắt trên tấm thảm ẩm, dưới tiếng đèn huỳnh quang rè rè không dứt.</p><p>Những bức tường vàng trải dài vô tận. Trước mặt bạn, một thực thể có sừng đang đứng im.</p><p>Chọn <b>ACTION</b>, <b>MOVE</b> hoặc <b>FIND</b> ở khung dưới.</p>';
   }
   function render(){
-    enemyHpEl.style.width = S.enemyAlive ? Math.max(0, S.enemyHp/S.enemyMax*100)+'%' : '0%';
-    statTag.textContent = 'HP ' + S.hp + ' · SANITY ' + S.sanity;
     menuStats.textContent = 'HP ' + S.hp + ' · Sanity ' + S.sanity + ' · Phòng ' + S.room + (S.enemyAlive ? ' · Enemy HP ' + S.enemyHp : ' · Không có Enemy');
     bagEl.innerHTML = S.bag.length ? S.bag.map(x=>'<li>'+x+'</li>').join('') : '<li>Trống</li>';
   }
@@ -219,8 +211,7 @@
     if(!S.enemyAlive){ tell('Không có Enemy nào trong phòng này. Bạn vung kiếm vào khoảng không — chỉ có tiếng gió rít qua giấy dán tường.'); return; }
     const dmg=12+Math.floor(Math.random()*13); S.enemyHp-=dmg;
     playerEl.classList.remove('swing'); void playerEl.offsetWidth; playerEl.classList.add('swing');
-    enemyEl.classList.remove('hit'); void enemyEl.offsetWidth; enemyEl.classList.add('hit');
-    if(S.enemyHp<=0){ S.enemyAlive=false; enemyEl.classList.add('dead'); S.sanity=Math.min(100,S.sanity+6); tell('<b>ACTION:</b> Lưỡi kiếm chém trúng — Enemy tan ra như khói đen, để lại vệt lạnh trên thảm. Bạn thắng phòng này. Hãy <b>MOVE</b> để đi tiếp.','sys'); }
+    if(S.enemyHp<=0){ S.enemyAlive=false; S.sanity=Math.min(100,S.sanity+6); tell('<b>ACTION:</b> Lưỡi kiếm chém trúng — Enemy tan ra như khói đen, để lại vệt lạnh trên thảm. Bạn thắng phòng này. Hãy <b>MOVE</b> để đi tiếp.','sys'); }
     else { tell('<b>ACTION:</b> Bạn chém trúng Enemy, gây <b>'+dmg+'</b> sát thương. Nó lùi lại, sừng rung lên, rồi phản đòn.'); hurtPlayer(5+Math.floor(Math.random()*8)); }
     render();
   };
@@ -228,8 +219,8 @@
     if(S.hp<=0) return;
     S.room++; S.sanity=Math.max(0,S.sanity-4);
     const encounter=Math.random()<0.6;
-    if(encounter){ S.enemyAlive=true; S.enemyMax=50+Math.floor(Math.random()*31); S.enemyHp=S.enemyMax; enemyEl.classList.remove('dead'); tell('<b>MOVE:</b> Bạn noclip qua góc tường và rơi vào <b>Phòng '+S.room+'</b>. Một Enemy mới đã đứng chờ sẵn, đầu hơi nghiêng.','sys'); }
-    else { S.enemyAlive=false; enemyEl.classList.add('dead'); tell('<b>MOVE:</b> Bạn bước vào <b>Phòng '+S.room+'</b> trống trơn. Không có Enemy — chỉ có mùi thảm cũ và một khoảng yên tĩnh hiếm hoi. Sanity -4.'); }
+    if(encounter){ S.enemyAlive=true; S.enemyMax=50+Math.floor(Math.random()*31); S.enemyHp=S.enemyMax; tell('<b>MOVE:</b> Bạn noclip qua góc tường và rơi vào <b>Phòng '+S.room+'</b>. Một Enemy mới đã đứng chờ sẵn, đầu hơi nghiêng.','sys'); }
+    else { S.enemyAlive=false; tell('<b>MOVE:</b> Bạn bước vào <b>Phòng '+S.room+'</b> trống trơn. Không có Enemy — chỉ có mùi thảm cũ và một khoảng yên tĩnh hiếm hoi. Sanity -4.'); }
     render();
   };
   const loot=['Nước hạnh nhân','Đèn pin yếu','Mảnh giấy: “Đừng nghe tiếng gõ”','Băng gạc cũ','Chìa khóa không răng'];
@@ -431,7 +422,6 @@
     const request = requestPhoneFullscreen();
     S = loaded.state;
     story.innerHTML = loaded.storyHtml;
-    enemyEl.classList.toggle('dead', !S.enemyAlive);
     render();
     enterGame();
     handleFullscreenResult(request);
