@@ -51,6 +51,18 @@
   .actions button{border:2px solid var(--ink);border-radius:8px;background:var(--muted);padding:11px 4px;font-size:13px;font-weight:900;letter-spacing:.4px;cursor:pointer}
   .actions button:active{transform:scale(.97);background:#111;color:#fff}
   .actions button:disabled{opacity:.45;cursor:not-allowed}
+  /* Action prompt: bang nhap hanh dong tu do khi nhan ACTION */
+  .action-prompt{position:absolute;inset:0;background:rgba(0,0,0,.45);display:none;z-index:11;align-items:flex-end;justify-content:center}
+  .action-prompt.open{display:flex}
+  .action-card{width:100%;background:var(--paper);border-top:3px solid var(--ink);padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+  .action-card h3{font-size:13px;font-weight:900;letter-spacing:1.2px;margin-bottom:6px}
+  .action-card .action-hint{font-size:13px;color:#555;line-height:1.45;margin-bottom:10px}
+  .action-card textarea{width:100%;border:2px solid var(--ink);border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;line-height:1.45;resize:vertical;min-height:64px;background:#fff;color:var(--ink)}
+  .action-card textarea:focus{outline:3px solid var(--yellow);outline-offset:1px}
+  .action-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .action-row button{border:2.5px solid var(--ink);border-radius:10px;padding:12px;font-size:15px;font-weight:900;letter-spacing:.4px;cursor:pointer;background:var(--yellow2);color:var(--ink)}
+  .action-row button.ghost{background:#fff}
+  .action-row button:active{transform:scale(.98)}
   /* Menu overlay */
   .menu{position:absolute;inset:0;background:rgba(0,0,0,.45);display:none;z-index:10}
   .menu.open{display:block}
@@ -148,6 +160,19 @@
     <button id="btnFind">FIND</button>
   </nav>
 
+  <!-- Bảng nhập hành động: nhấn ACTION thì hiện, người chơi gõ hành động tự do cho Kael -->
+  <div class="action-prompt" id="actionPrompt">
+    <div class="action-card" role="dialog" aria-modal="true" aria-labelledby="actionPromptTitle">
+      <h3 id="actionPromptTitle">HÀNH ĐỘNG CỦA KAEL</h3>
+      <p class="action-hint">Gõ điều Kael sẽ làm rồi nhấn “Ra tay”. Để trống thì Kael đánh đòn thường như cũ.</p>
+      <textarea id="actionInput" rows="3" maxlength="300" placeholder="Kael sẽ làm gì…?"></textarea>
+      <div class="action-row">
+        <button id="btnActionCancel" class="ghost" type="button">Hủy</button>
+        <button id="btnActionConfirm" type="button">Ra tay</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Non-blocking fullscreen status and manual re-entry -->
   <div id="fullscreenNotice" class="fullscreen-notice" hidden>
     <p id="fullscreenHint" role="status" aria-live="polite"></p>
@@ -194,6 +219,8 @@
   const menuStats = document.getElementById('menuStats');
   const bagEl = document.getElementById('bag');
   let S;
+  let gmBusy = false;
+  let gmSeq = 0;
   // PROLOGUE — "PRENN 1922: Kẻ Lạc Đường": opens the Game Master story frame
   // at the start of every new game (reset). Text exactly as supplied by Eric
   // (literary edit by ChatGPT, 2026-11-22); do not rewrite.
@@ -260,6 +287,8 @@
     + '<p>Cuộc săn đã bắt đầu.</p>'
     + '<p>Chỉ có điều, chủ nhân của Prenn vẫn chưa biết mình vừa đón tiếp một vị khách như thế nào.</p>';
   function reset(){
+    gmSeq++; // invalidate any in-flight Game Master request from the old game
+    setGmBusy(false);
     S = {hp:100, sanity:100, room:1, enemyHp:60, enemyMax:60, enemyAlive:false, bag:[]};
     render();
     story.innerHTML = PROLOGUE_HTML + '<p class="sys">Bạn mở mắt trên tấm thảm ẩm, dưới tiếng đèn huỳnh quang rè rè không dứt.</p><p>Những bức tường vàng trải dài vô tận. Nhi đang đi bên cạnh bạn, và chưa có kẻ thù nào xuất hiện.</p><p>Chọn <b>ACTION</b>, <b>MOVE</b> hoặc <b>FIND</b> ở khung dưới.</p>';
@@ -275,31 +304,126 @@
   }
   function hurtPlayer(dmg){
     S.hp=Math.max(0,S.hp-dmg); playerEl.classList.remove('hit'); void playerEl.offsetWidth; playerEl.classList.add('hit');
-    if(S.hp<=0){ tell('<b>Bạn gục xuống trên tấm thảm vàng.</b> Tiếng đèn vẫn rè rè. Game Master khép lại câu chuyện tại đây — mở menu Hamburger và chọn “Chơi lại từ đầu”.','sys'); }
+    return S.hp<=0;
   }
-  document.getElementById('btnAction').onclick=()=>{
-    if(S.hp<=0) return;
+  // --- Game Master qua proxy (premium lane tren Render) -------------------
+  // Co che game (sat thuong, do nhac, sanity, gap Enemy) van do engine local
+  // quyet dinh nhu cu; proxy AI chi viet loi ke cho ket qua do. Proxy loi,
+  // cham hoac het thoi gian cho thi game tu roi ve loi ke co san, khong vo.
+  const GM_PROXY_URL = 'https://backrooms-premium-proxy.onrender.com/chat';
+  const GM_SYSTEM = 'Bạn là Game Master của game kinh dị PRENN 1922. Bối cảnh: rừng thông Đà Lạt — thông cao vút, sương trắng dày đặc, đất đỏ ẩm, lạnh. Nhân vật chính: Kael, kiếm sĩ phục vụ Vatican gần 200 năm, dùng kiếm đen Exitium Mundi (không có vỏ kiếm) và giáp đen Lorica Noctis; tính cách ngông nghênh, hay đùa cợt ngay cả lúc nguy hiểm. Đồng hành cùng Kael: Nhi. Kẻ địch là các thực thể méo mó trong sương, dưới quyền Bạch Y Vô Danh. Nhiệm vụ: kể lại sự kiện được mô tả trong 2-4 đoạn ngắn bằng tiếng Việt, văn phong kinh dị giàu hình ảnh. CHỈ kể chuyện: không quyết định cơ chế game, không nêu số liệu (HP, sát thương), không liệt kê lựa chọn cho người chơi, không nhắc rằng bạn là AI hay mô hình ngôn ngữ. Kết bằng một chi tiết gợi mở khiến người chơi muốn đi tiếp.';
+  function setGmBusy(busy){
+    gmBusy = busy;
+    ['btnAction','btnMove','btnFind'].forEach(id=>{ document.getElementById(id).disabled = busy; });
+  }
+  function recentStoryText(){
+    const ps = story.querySelectorAll('p');
+    const out = [];
+    for(let i = Math.max(0, ps.length - 6); i < ps.length; i++){
+      const t = ps[i].textContent.trim();
+      if(t) out.push(t.slice(0, 300));
+    }
+    return out.join('\n');
+  }
+  function tellNarration(text){
+    text.split(/\n\s*\n|\n/).map(s=>s.trim()).filter(Boolean).forEach(part=>{
+      tell(part.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+    });
+  }
+  async function askGM(eventText, fallbackHTML, fallbackCls){
+    if(gmBusy) return;
+    const seq = ++gmSeq;
+    setGmBusy(true);
+    const wait = document.createElement('p');
+    wait.className = 'sys'; wait.textContent = 'Game Master đang kể…';
+    story.appendChild(wait); story.scrollTop = story.scrollHeight;
+    const stateText = 'Trạng thái hiện tại — Khu: ' + S.room + ', HP: ' + S.hp + ', Sanity: ' + S.sanity + (S.enemyAlive ? ', đang đối mặt một thực thể' : ', không có thực thể nào gần') + ', Túi đồ: ' + (S.bag.length ? S.bag.join(', ') : 'trống') + '.';
+    const userText = 'Những đoạn gần nhất của câu chuyện:\n' + recentStoryText() + '\n\n' + stateText + '\n\nSự kiện cần kể: ' + eventText;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(()=>ctrl.abort(), 75000);
+      const res = await fetch(GM_PROXY_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({messages:[{role:'system',content:GM_SYSTEM},{role:'user',content:userText}], temperature:0.8, max_tokens:500}),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      if(!res.ok) throw new Error('proxy ' + res.status);
+      const data = await res.json();
+      const text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if(!text || !text.trim()) throw new Error('empty narration');
+      if(seq !== gmSeq) return; // a newer game/action superseded this request
+      wait.remove();
+      tellNarration(text.trim());
+    } catch(err) {
+      if(seq !== gmSeq) return;
+      wait.remove();
+      tell(fallbackHTML, fallbackCls);
+    } finally {
+      if(seq === gmSeq) setGmBusy(false);
+    }
+  }
+  // --- Bang nhap hanh dong: nhan ACTION thi HIEN bang, khong danh ngay ---
+  // Xac nhan o trong = don danh mac dinh nhu cu. Co noi dung X thi ghi
+  // "HÀNH ĐỘNG CỦA BẠN: X" (class 'sys' de save/load giu lai duoc) roi:
+  // co Enemy -> chay dung co che don danh cu, GM ke kem hanh dong cua
+  // nguoi choi; khong Enemy -> GM ke ket qua hanh dong tu do, khong doi
+  // bat ky co che nao. Huy thi dong bang, khong ton luot, khong doi state.
+  const actionPromptEl = document.getElementById('actionPrompt');
+  const actionInputEl = document.getElementById('actionInput');
+  function escPlayerText(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function openActionPrompt(){
+    if(S.hp<=0 || gmBusy) return;
+    actionInputEl.value = '';
+    actionPromptEl.classList.add('open');
+    setTimeout(()=>{ actionInputEl.focus(); }, 0);
+  }
+  function closeActionPrompt(){
+    actionPromptEl.classList.remove('open');
+  }
+  // Don danh chuan (co che cu, khong thay doi). customText chi thay cach
+  // GM ke lai ket qua, khong cham vao sat thuong / phan don / thang thua.
+  function performAction(customText){
+    if(S.hp<=0 || gmBusy) return;
     if(!S.enemyAlive){ tell('Không có Enemy nào trong phòng này. Bạn vung kiếm vào khoảng không — chỉ có tiếng gió rít qua giấy dán tường.'); return; }
     const dmg=12+Math.floor(Math.random()*13); S.enemyHp-=dmg;
     playerEl.classList.remove('swing'); void playerEl.offsetWidth; playerEl.classList.add('swing');
-    if(S.enemyHp<=0){ S.enemyAlive=false; S.sanity=Math.min(100,S.sanity+6); tell('<b>ACTION:</b> Lưỡi kiếm chém trúng — Enemy tan ra như khói đen, để lại vệt lạnh trên thảm. Bạn thắng phòng này. Hãy <b>MOVE</b> để đi tiếp.','sys'); }
-    else { tell('<b>ACTION:</b> Bạn chém trúng Enemy, gây <b>'+dmg+'</b> sát thương. Nó lùi lại, sừng rung lên, rồi phản đòn.'); hurtPlayer(5+Math.floor(Math.random()*8)); }
-    render();
+    if(S.enemyHp<=0){ S.enemyAlive=false; S.sanity=Math.min(100,S.sanity+6); render(); askGM(customText ? 'Người chơi chọn hành động: “'+customText+'”. Kết quả: đòn đánh kết liễu thực thể, nó tan biến hẳn. Kael thắng trận này, tinh thần vững lại đôi chút. Hãy gợi ý hắn đi tiếp sâu hơn vào rừng.' : 'Kael chém nhát quyết định, thực thể tan biến hẳn. Kael thắng trận này, tinh thần vững lại đôi chút. Hãy gợi ý hắn đi tiếp sâu hơn vào rừng.', '<b>ACTION:</b> Lưỡi kiếm chém trúng — Enemy tan ra như khói đen, để lại vệt lạnh trên thảm. Bạn thắng phòng này. Hãy <b>MOVE</b> để đi tiếp.', 'sys'); }
+    else { const died = hurtPlayer(5+Math.floor(Math.random()*8)); render(); askGM(customText ? (died ? 'Người chơi chọn hành động: “'+customText+'”. Kết quả: Kael đánh trúng thực thể, nhưng đòn phản công của nó quá nặng — Kael gục xuống và câu chuyện kết thúc tại đây.' : 'Người chơi chọn hành động: “'+customText+'”. Kết quả: Kael đánh trúng thực thể, nó lùi lại rồi phản đòn. Kael trúng đòn nhưng vẫn đứng vững, trận đấu chưa kết thúc.') : (died ? 'Kael chém trúng thực thể, nhưng đòn phản công của nó quá nặng — Kael gục xuống và câu chuyện kết thúc tại đây.' : 'Kael chém trúng thực thể, nó lùi lại rồi phản đòn. Kael trúng đòn nhưng vẫn đứng vững, trận đấu chưa kết thúc.'), '<b>ACTION:</b> Bạn chém trúng Enemy, gây <b>'+dmg+'</b> sát thương. Nó lùi lại, sừng rung lên, rồi phản đòn.' + (died ? ' <b>Bạn gục xuống trên tấm thảm vàng.</b> Tiếng đèn vẫn rè rè. Game Master khép lại câu chuyện tại đây — mở menu Hamburger và chọn “Chơi lại từ đầu”.' : '')); }
+  }
+  document.getElementById('btnAction').onclick=()=>{
+    openActionPrompt();
+  };
+  document.getElementById('btnActionCancel').onclick=()=>{ closeActionPrompt(); };
+  actionPromptEl.addEventListener('click',e=>{ if(e.target===actionPromptEl) closeActionPrompt(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeActionPrompt(); });
+  document.getElementById('btnActionConfirm').onclick=()=>{
+    if(S.hp<=0 || gmBusy){ closeActionPrompt(); return; }
+    const x = actionInputEl.value.trim();
+    closeActionPrompt();
+    if(!x){ performAction(null); saveGame(); return; }
+    tell('HÀNH ĐỘNG CỦA BẠN: ' + escPlayerText(x), 'sys');
+    if(S.enemyAlive){ performAction(x); }
+    else {
+      askGM('Hiện tại không có thực thể nào ở gần. Người chơi chọn hành động tự do: “' + x + '”. Hãy kể kết quả của hành động này trong bối cảnh rừng thông sương mù hiện tại, giữ đúng tính cách ngông nghênh của Kael; không tự sinh thêm sát thương, vật phẩm hay kẻ địch mới.', '<b>ACTION:</b> ' + escPlayerText(x));
+    }
+    saveGame();
   };
   document.getElementById('btnMove').onclick=()=>{
-    if(S.hp<=0) return;
+    if(S.hp<=0 || gmBusy) return;
     S.room++; S.sanity=Math.max(0,S.sanity-4);
     const encounter=Math.random()<0.6;
-    if(encounter){ S.enemyAlive=true; S.enemyMax=50+Math.floor(Math.random()*31); S.enemyHp=S.enemyMax; tell('<b>MOVE:</b> Bạn noclip qua góc tường và rơi vào <b>Phòng '+S.room+'</b>. Một Enemy mới đã đứng chờ sẵn, đầu hơi nghiêng.','sys'); }
-    else { S.enemyAlive=false; tell('<b>MOVE:</b> Bạn bước vào <b>Phòng '+S.room+'</b> trống trơn. Không có Enemy — chỉ có mùi thảm cũ và một khoảng yên tĩnh hiếm hoi. Sanity -4.'); }
-    render();
+    if(encounter){ S.enemyAlive=true; S.enemyMax=50+Math.floor(Math.random()*31); S.enemyHp=S.enemyMax; render(); askGM('Kael rời khu vực cũ, đi sâu thêm vào rừng thông (khu thứ ' + S.room + '). Một thực thể mới đã đứng chờ sẵn trong sương, đầu hơi nghiêng, chưa tấn công.', '<b>MOVE:</b> Bạn noclip qua góc tường và rơi vào <b>Phòng '+S.room+'</b>. Một Enemy mới đã đứng chờ sẵn, đầu hơi nghiêng.', 'sys'); }
+    else { S.enemyAlive=false; render(); askGM('Kael rời khu vực cũ, bước vào một khoảng rừng trống (khu thứ ' + S.room + '). Không có thực thể nào — chỉ có sương, mùi đất ẩm và một khoảng yên tĩnh hiếm hoi, dù đầu óc Kael hơi căng thẳng.', '<b>MOVE:</b> Bạn bước vào <b>Phòng '+S.room+'</b> trống trơn. Không có Enemy — chỉ có mùi thảm cũ và một khoảng yên tĩnh hiếm hoi. Sanity -4.'); }
   };
   const loot=['Nước hạnh nhân','Đèn pin yếu','Mảnh giấy: “Đừng nghe tiếng gõ”','Băng gạc cũ','Chìa khóa không răng'];
   document.getElementById('btnFind').onclick=()=>{
-    if(S.hp<=0) return;
-    if(Math.random()<0.72){ const item=loot[Math.floor(Math.random()*loot.length)]; S.bag.push(item); S.sanity=Math.min(100,S.sanity+3); tell('<b>FIND:</b> Sau lớp giấy dán tường bong tróc, bạn tìm thấy <b>'+item+'</b>. Đã cho vào túi đồ (xem trong menu Hamburger).','loot'); }
-    else { tell('<b>FIND:</b> Bạn lục khắp phòng mà không thấy gì ngoài bụi và sợi thảm. Từ rất xa, có tiếng gõ ba lần vào tường.'); S.sanity=Math.max(0,S.sanity-5); }
-    render();
+    if(S.hp<=0 || gmBusy) return;
+    if(Math.random()<0.72){ const item=loot[Math.floor(Math.random()*loot.length)]; S.bag.push(item); S.sanity=Math.min(100,S.sanity+3); render(); askGM('Kael lục tìm quanh khu vực và tìm thấy: ' + item + '. Kael nhặt lên, cho vào túi đồ.', '<b>FIND:</b> Sau lớp giấy dán tường bong tróc, bạn tìm thấy <b>'+item+'</b>. Đã cho vào túi đồ (xem trong menu Hamburger).', 'loot'); }
+    else { S.sanity=Math.max(0,S.sanity-5); render(); askGM('Kael lục khắp nơi mà không thấy gì ngoài bụi và đất ẩm. Từ rất xa vọng lại tiếng gõ ba lần, đều đặn, rồi im bặt.', '<b>FIND:</b> Bạn lục khắp phòng mà không thấy gì ngoài bụi và sợi thảm. Từ rất xa, có tiếng gõ ba lần vào tường.'); }
   };
   const menu=document.getElementById('menu');
   document.getElementById('burger').onclick=()=>{render();menu.classList.add('open')};
