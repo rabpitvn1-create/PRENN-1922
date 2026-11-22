@@ -140,6 +140,11 @@ def _schema(db: sqlite3.Connection):
     db.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS title_fts USING fts5(
         code UNINDEXED, title, breadcrumb, tokenize='unicode61 remove_diacritics 0'
     )""")
+    # Existing releases predate activation tracking and must be treated as retained.
+    manifest_cols = {r[1] for r in db.execute("PRAGMA table_info(release_manifest)")}
+    if "activated" not in manifest_cols:
+        db.execute("ALTER TABLE release_manifest ADD COLUMN activated INTEGER NOT NULL DEFAULT 0")
+        db.execute("UPDATE release_manifest SET activated=1")
     db.commit()
 
 
@@ -256,9 +261,23 @@ def publish_atomic(root: str | Path, release_id: str,
     tmp = root / "releases" / (".prepare_" + uuid.uuid4().hex)
     try:
         _schema(db)
-        if target.exists() or db.execute(
-            "SELECT 1 FROM release_manifest WHERE release_id=?",
-            (release_id,)).fetchone():
+        existing = db.execute(
+            "SELECT activated FROM release_manifest WHERE release_id=?",
+            (release_id,)).fetchone()
+        current_path = root / "CURRENT"
+        current_release = current_path.read_text(encoding="ascii").strip() if current_path.exists() else None
+        if existing is not None:
+            if current_release == release_id or existing["activated"]:
+                raise ValueError("RELEASE_EXISTS")
+            # A prior attempt prepared this release but never switched CURRENT.
+            # It is safe to discard only this unactivated snapshot and its manifest.
+            import shutil
+            if target.exists():
+                shutil.rmtree(target)
+            with db:
+                db.execute("DELETE FROM release_shards WHERE release_id=?", (release_id,))
+                db.execute("DELETE FROM release_manifest WHERE release_id=?", (release_id,))
+        elif target.exists():
             raise ValueError("RELEASE_EXISTS")
         shards = list(db.execute("SELECT * FROM shard_catalog ORDER BY shard_id"))
         if not shards:
@@ -323,6 +342,10 @@ def publish_atomic(root: str | Path, release_id: str,
             if crash_at == "before_commit":
                 raise RuntimeError("INJECTED_CRASH_BEFORE_COMMIT")
             os.replace(pending, current)
+            # CURRENT is authoritative if a process dies before this bookkeeping write.
+            with db:
+                db.execute("UPDATE release_manifest SET activated=1 WHERE release_id=?",
+                           (release_id,))
             # Best-effort directory sync for POSIX power-loss durability.
             if os.name == "posix":
                 fd = os.open(root, os.O_RDONLY)
