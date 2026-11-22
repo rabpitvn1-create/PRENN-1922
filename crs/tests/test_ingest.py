@@ -105,6 +105,22 @@ class IngestionTests(unittest.TestCase):
         reader.close()
         self.assertTrue((self.root / "releases/R001/registry.db").is_file())
 
+    def test_retry_after_crash_before_commit(self):
+        self._ingest(sample())
+        publish_atomic(self.root, "R001")
+        first = (self.root / "CURRENT").read_bytes()
+        self._ingest("# New facts\n<!-- CRS:FACT -->\n" +
+                     "Kael was born in Saigon in 1901. " * 12, "R002")
+        with self.assertRaisesRegex(RuntimeError, "INJECTED_CRASH"):
+            publish_atomic(self.root, "R002", crash_at="before_commit")
+        self.assertEqual((self.root / "CURRENT").read_bytes(), first)
+        report = publish_atomic(self.root, "R002")
+        self.assertEqual(report["release_id"], "R002")
+        self.assertEqual((self.root / "CURRENT").read_text().strip(), "R002")
+        self.assertTrue((self.root / "releases/R001/registry.db").is_file())
+        with self.assertRaisesRegex(ValueError, "RELEASE_EXISTS"):
+            publish_atomic(self.root, "R002")
+
     def test_no_code_reuse(self):
         self._ingest(sample())
         with connect(self.root / "registry.db") as db:
