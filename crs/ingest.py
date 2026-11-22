@@ -97,23 +97,25 @@ def chunk_text(text: str, kind: str) -> list[str]:
         raise ValueError("INVALID_CHUNK_TYPE")
     minimum, maximum = TARGETS[kind]
     units = _units(text, kind, maximum)
-    result, current = [], []
+    groups: list[list[str]] = []
+    current: list[str] = []
     for unit in units:
-        n = tokens(unit)
-        if current and tokens("\n\n".join(current)) + n > maximum:
-            result.append("\n\n".join(current))
+        if current and tokens("\n\n".join(current + [unit])) > maximum:
+            groups.append(current)
             current = []
         current.append(unit)
-        if tokens("\n\n".join(current)) >= minimum:
-            result.append("\n\n".join(current))
-            current = []
     if current:
-        tail = "\n\n".join(current)
-        if result and tokens(result[-1]) + tokens(tail) <= maximum:
-            result[-1] += "\n\n" + tail
-        else:
-            result.append(tail)
-    return result
+        groups.append(current)
+    # Redistribute atomic units to avoid an unnecessarily short final chunk.
+    if len(groups) > 1 and tokens("\n\n".join(groups[-1])) < minimum:
+        previous, tail = groups[-2], groups[-1]
+        while len(previous) > 1 and tokens("\n\n".join(tail)) < minimum:
+            moved = previous.pop()
+            tail.insert(0, moved)
+        if tokens("\n\n".join(tail)) < minimum and (
+                tokens("\n\n".join(previous + tail)) <= maximum):
+            groups[-2:] = [previous + tail]
+    return ["\n\n".join(group) for group in groups]
 
 
 def _schema(db: sqlite3.Connection):
