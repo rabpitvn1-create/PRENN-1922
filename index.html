@@ -80,7 +80,21 @@
   .start-card .start-note{margin-top:14px;color:#bbb;font-size:12px}
   .start-card .start-status{margin-top:10px;color:#f8d777;font-size:13px;font-weight:700}
   .start-status:empty{display:none}
-  #startScreen[hidden],#fullscreenNotice[hidden],#fullscreenReenter[hidden]{display:none!important}
+  #startScreen[hidden],#prologueScreen[hidden],#fullscreenNotice[hidden],#fullscreenReenter[hidden]{display:none!important}
+  /* Prologue — shown before a new game (START GAME) and readable from the start screen */
+  .prologue-screen{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(160deg,#0d0f0e 0%,#1c1f1c 58%,#2e2a18 100%);color:#f3efe2}
+  .prologue-card{width:100%;max-width:470px;max-height:100%;display:flex;flex-direction:column;padding:26px 22px 20px;border:2px solid var(--yellow);border-radius:18px;background:rgba(0,0,0,.9);box-shadow:0 18px 50px rgba(0,0,0,.5)}
+  .prologue-kicker{color:var(--yellow2);font-size:12px;font-weight:900;letter-spacing:3px;text-align:center}
+  .prologue-card h2{margin:10px 0 4px;font-size:clamp(21px,6vw,27px);letter-spacing:.5px;text-align:center}
+  .prologue-sub{margin-bottom:14px;color:#bdb49a;font-size:12.5px;text-align:center;font-style:italic}
+  .prologue-text{overflow-y:auto;padding:4px 8px 4px 2px;font-family:Georgia,'Times New Roman',serif;font-size:15.5px;line-height:1.75}
+  .prologue-text p{margin-bottom:13px}
+  .prologue-text p:last-child{margin-bottom:2px}
+  .prologue-actions{display:grid;gap:10px;margin-top:16px}
+  .prologue-actions button{width:100%;padding:14px 12px;border:2px solid var(--yellow2);border-radius:12px;background:var(--yellow2);color:#111;font-size:16px;font-weight:900;letter-spacing:1px;cursor:pointer}
+  .prologue-actions button.secondary{background:transparent;color:var(--yellow2)}
+  .prologue-actions button:active{transform:scale(.98)}
+  .prologue-actions button[hidden]{display:none!important}
   /* Fullscreen only affects the original game shell */
   .phone:fullscreen{width:100%;max-width:520px;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;margin:0 auto;border-radius:0;box-shadow:none;overflow-x:hidden;overflow-y:auto}
   .phone:fullscreen::backdrop{background:#111}
@@ -103,9 +117,85 @@
       <div class="start-options">
         <button id="btnStartGame" type="button">START GAME</button>
         <button id="btnLoadGame" class="secondary" type="button">LOAD GAME</button>
+        <button id="btnReadPrologue" class="secondary" type="button">ĐỌC PROLOGUE</button>
       </div>
       <p class="start-note">START GAME tạo ván mới và ghi đè bản lưu hiện tại.</p>
       <p id="startStatus" class="start-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- Prologue: shown before a new game starts; also readable from the start screen -->
+  <div id="prologueScreen" class="prologue-screen" role="dialog" aria-modal="true" aria-labelledby="prologueTitle" hidden>
+    <div class="prologue-card">
+      <p class="prologue-kicker">PROLOGUE</p>
+      <h2 id="prologueTitle">PRENN 1922: Kẻ Lạc Đường</h2>
+      <p class="prologue-sub">Đà Lạt, năm 2199.</p>
+      <div class="prologue-text" id="prologueText" tabindex="0">
+        <p>Kael không nhớ mình đã uống bao nhiêu chai bia.</p>
+        <p>Hắn chỉ nhớ nhiệm vụ cuối cùng đã hoàn thành, Vatican không còn việc gì cần đến hắn, và ông chủ quán rượu vừa lịch sự mời vị khách cuối cùng ra về.</p>
+        <p>Sau gần hai thế kỷ sống trên đời, Kael đã học được một điều: những khoảnh khắc không phải nghe ai ra lệnh luôn đáng trân trọng.</p>
+        <p>Hắn thong thả bước xuống con đường vắng.</p>
+        <p>Bộ giáp Lorica Noctis đen tuyền điểm những đường vàng kim phản chiếu ánh đèn. Bên hông hắn, Exitium Mundi nằm yên, lưỡi kiếm đen không vỏ ánh lên sắc vàng nhàn nhạt.</p>
+        <p>Gió lạnh thổi qua những rặng thông.</p>
+        <p>“Đà Lạt vẫn dễ chịu thật.”</p>
+        <p>Kael ngửa cổ uống nốt ngụm bia cuối cùng.</p>
+        <p>“Có điều quán đóng cửa hơi sớm.”</p>
+        <p>Hắn tiếp tục đi.</p>
+        <p>Mười phút sau, Kael nhận ra có gì đó không ổn.</p>
+        <p>Con đường nhựa dưới chân đã biến mất.</p>
+        <p>Thay vào đó là đất đỏ ẩm ướt, những bụi cỏ dại và hàng thông cao vút chìm trong màn sương trắng.</p>
+        <p>Không còn đèn đường.</p>
+        <p>Không còn tiếng xe.</p>
+        <p>Ngay cả những tòa nhà thấp thoáng phía xa cũng biến mất.</p>
+        <p>Kael dừng bước, quay đầu nhìn lại.</p>
+        <p>Con đường hắn vừa đi qua giờ chỉ còn một lối mòn chạy sâu vào rừng.</p>
+        <p>“Ồ?”</p>
+        <p>Hắn nhướng mày, nhìn chai bia rỗng trong tay.</p>
+        <p>“Đừng nói là uống phải hàng giả nhé?”</p>
+        <p>Kael bật cười.</p>
+        <p>Tuy nhiên, ánh mắt màu hổ phách đã trở nên tỉnh táo.</p>
+        <p>Gần hai trăm năm phục vụ Vatican, hắn từng chứng kiến không ít hiện tượng vượt ngoài hiểu biết thông thường. Một con đường đột nhiên biến mất chưa đủ khiến hắn kinh ngạc.</p>
+        <p>Điều đáng chú ý hơn là màn sương.</p>
+        <p>Nó phủ kín mọi thứ, dày đến mức những thân thông cách vài mét cũng chỉ còn là bóng đen mờ nhạt.</p>
+        <p>Phía trước, một đốm sáng vàng nhấp nháy.</p>
+        <p>Kael bước tới.</p>
+        <p>Đó là ngọn đèn dầu treo trước một căn nhà gỗ cũ kỹ. Ngọn lửa nhỏ đẩy màn sương lùi lại, để lộ vài bậc thềm mục nát.</p>
+        <p>Cộc.</p>
+        <p>Một tiếng gõ vang lên từ bên trong.</p>
+        <p>Cộc. Cộc.</p>
+        <p>Kael nhìn cánh cửa.</p>
+        <p>“Có ai ở nhà không?”</p>
+        <p>Im lặng.</p>
+        <p>Rồi cánh cửa từ từ hé mở.</p>
+        <p>Một hình người trắng bệch đứng trong bóng tối.</p>
+        <p>Đầu nó nghiêng sang một bên. Khuôn mặt biến dạng, hàm dưới há rộng bất thường. Cánh tay phải lúc rõ nét, lúc nhòe đi như một vệt khói.</p>
+        <p>Kael quan sát nó vài giây.</p>
+        <p>“Chào người đẹp.”</p>
+        <p>Thứ ấy lao tới.</p>
+        <p>Lưỡi Exitium Mundi lóe lên.</p>
+        <p>Xoẹt!</p>
+        <p>Một đường kiếm gọn gàng cắt ngang thân hình trắng bệch.</p>
+        <p>Thực thể vỡ thành những dải sương xám, tan dần trong không khí.</p>
+        <p>Kael hạ kiếm.</p>
+        <p>“Ồ?”</p>
+        <p>Hắn nhìn lưỡi kiếm, rồi nhìn khoảng trống trước cửa.</p>
+        <p>“Chém trúng được luôn à?”</p>
+        <p>Một nụ cười thích thú xuất hiện trên môi hắn.</p>
+        <p>Ở nơi sâu thẳm trong lãnh địa, Bạch Y Vô Danh cảm nhận được một biến động.</p>
+        <p>Một sinh vật sống vừa lọt vào Prenn.</p>
+        <p>Chuyện ấy vốn chẳng đáng quan tâm.</p>
+        <p>Nhưng một linh thể dưới quyền ả vừa bị đánh tan bởi thứ vũ khí mà nó lẽ ra không thể bị thương tổn.</p>
+        <p>Lần đầu tiên, Bạch Y hướng sự chú ý về kẻ mới đến.</p>
+        <p>Còn Kael, kẻ hoàn toàn không biết mình vừa bước vào một thế giới bị giam cầm vĩnh viễn trong năm 1922, đang cúi xuống quan sát ngọn đèn dầu.</p>
+        <p>“Chỗ này thú vị đấy.”</p>
+        <p>Hắn mỉm cười.</p>
+        <p>Cuộc săn đã bắt đầu.</p>
+        <p>Chỉ có điều, chủ nhân của Prenn vẫn chưa biết mình vừa đón tiếp một vị khách như thế nào.</p>
+      </div>
+      <div class="prologue-actions">
+        <button id="btnPrologueBegin" type="button">BƯỚC VÀO PRENN</button>
+        <button id="btnPrologueBack" class="secondary" type="button" hidden>QUAY LẠI</button>
+      </div>
     </div>
   </div>
 
@@ -410,8 +500,33 @@
     gameParts.forEach(part=>{part.inert = false;});
   }
 
+  const prologueScreenEl = document.getElementById('prologueScreen');
+  const btnPrologueBegin = document.getElementById('btnPrologueBegin');
+  const btnPrologueBack = document.getElementById('btnPrologueBack');
+
+  function showPrologue(mode){
+    // 'intro': before a new game (begin button). 'read': reading only (back button).
+    btnPrologueBegin.hidden = mode !== 'intro';
+    btnPrologueBack.hidden = mode !== 'read';
+    document.getElementById('prologueText').scrollTop = 0;
+    prologueScreenEl.hidden = false;
+  }
+
   document.getElementById('btnStartGame').addEventListener('click', ()=>{
+    showPrologue('intro');
+  });
+
+  document.getElementById('btnReadPrologue').addEventListener('click', ()=>{
+    showPrologue('read');
+  });
+
+  btnPrologueBack.addEventListener('click', ()=>{
+    prologueScreenEl.hidden = true;
+  });
+
+  btnPrologueBegin.addEventListener('click', ()=>{
     const request = requestPhoneFullscreen();
+    prologueScreenEl.hidden = true;
     reset();
     enterGame();
     saveGame();
